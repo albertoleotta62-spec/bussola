@@ -92,6 +92,25 @@ nav.bottom a.on{color:var(--navy);font-weight:700}
 .mstrip i{flex:1;height:8px;border-radius:3px;background:#e8ecf3}
 .mstrip i.cons{background:#79b98a}.mstrip i.prov{background:#e9cf6b}.mstrip i.parz{background:#e5a45c}
 footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--muted)}
+/* ---- schermata di accesso: stessa veste del login BUSSOLA su PC ---- */
+.lockwrap{margin:-14px;background:#fff;min-height:100vh}
+.lockpan{background:linear-gradient(160deg,#1F3864 0%,#16294a 100%);color:#fff;
+  padding:calc(30px + env(safe-area-inset-top)) 20px 26px;text-align:center}
+.bsvg{width:150px;height:150px;display:block;margin:0 auto}
+.bbtn{background:none;border:0;padding:0;cursor:pointer;border-radius:50%;line-height:0}
+.bbtn:active .bago{transform:rotate(12deg)}
+.bago{transform-origin:110px 110px;transition:transform .5s cubic-bezier(.2,1.4,.4,1)}
+.bnome{font-size:26px;font-weight:700;letter-spacing:.18em;margin-top:14px}
+.bmotto{color:#ffd966;font-size:13.5px;font-style:italic;margin-top:8px}
+.lockform{padding:24px 22px 34px;max-width:480px;margin:0 auto}
+.blogo{height:38px;display:block;margin-bottom:14px}
+.lockform h2{color:var(--navy);font-size:16px;margin:0 0 2px}
+.lsub{color:#667788;font-size:12.5px;margin:0 0 16px}
+.lockform label{display:block;margin:10px 0 4px;font-size:13px;font-weight:600;color:var(--ink)}
+.bgo{margin:14px 0;font-size:13px;color:var(--navy);background:#eef3fb;
+  border:1px dashed #b9c4d6;border-radius:8px;padding:10px 12px;line-height:1.45}
+.bgo::before{content:"\261D\00a0";color:var(--gold);font-size:15px}
+.lver{font-size:10.5px;color:#aab;margin-top:16px;text-align:center}
 </style>
 </head>
 <body>
@@ -206,29 +225,67 @@ function resetTotale(){
   if(confirm("Cancellare PIN, sblocco biometrico e TUTTI i dati caricati su questo dispositivo?")){
     localStorage.clear(); sessionStorage.clear(); D=null; location.hash="#home"; render(); }
 }
-function logoBox(){
-  return '<div style="text-align:center;margin:26px 0 18px"><span style="background:#fff;border-radius:14px;padding:14px 22px;display:inline-block;box-shadow:0 2px 10px rgba(20,35,70,.12)"><img src="logo.png" alt="Cosedil" style="height:44px"></span><div style="margin-top:12px;font-weight:800;color:var(--navy);font-size:18px">Cosedil SpA BUSSOLA</div><div class="muted">Controllo Commesse</div></div>';
+/* rosa dei venti: la STESSA del login BUSSOLA su PC (toccarla = entrare) */
+const BUSSOLA_SVG = `<svg viewBox="0 0 220 220" class="bsvg" role="img" aria-label="Rosa dei venti">
+<circle cx="110" cy="110" r="104" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="2"/>
+<circle cx="110" cy="110" r="90" fill="none" stroke="#ffffff" stroke-opacity=".12" stroke-width="1"/>
+<circle cx="110" cy="110" r="72" fill="#ffffff" fill-opacity=".04"/>
+<g stroke="#ffffff" stroke-opacity=".3" stroke-width="1.5" stroke-linecap="round">
+<line x1="110" y1="200" x2="110" y2="214"/><line x1="6" y1="110" x2="20" y2="110"/>
+<line x1="200" y1="110" x2="214" y2="110"/><line x1="46.4" y1="46.4" x2="36.5" y2="36.5"/>
+<line x1="173.6" y1="46.4" x2="183.5" y2="36.5"/><line x1="46.4" y1="173.6" x2="36.5" y2="183.5"/>
+<line x1="173.6" y1="173.6" x2="183.5" y2="183.5"/></g>
+<text x="110" y="17.5" text-anchor="middle" font-size="12" font-weight="700" fill="#BF8F00" font-family="Arial">N</text>
+<path d="M110,34 L120,99 L110,110 L100,99 Z" fill="#ffffff" fill-opacity=".92"/>
+<path d="M110,186 L120,121 L110,110 L100,121 Z" fill="#ffffff" fill-opacity=".3"/>
+<path d="M34,110 L99,100 L110,110 L99,120 Z" fill="#ffffff" fill-opacity=".2"/>
+<path d="M186,110 L121,100 L110,110 L121,120 Z" fill="#ffffff" fill-opacity=".2"/>
+<g class="bago"><path d="M110,110 L152,68 L136,110 Z" fill="#a97a00"/>
+<path d="M110,110 L152,68 L110,84 Z" fill="#ffd966"/></g>
+<circle cx="110" cy="110" r="6.5" fill="#16294a" stroke="#BF8F00" stroke-width="2.5"/></svg>`;
+function loginHero(onTap){
+  return `<div class="lockpan"><button type="button" class="bbtn" onclick="${onTap}"
+   title="Tocca la bussola per entrare">${BUSSOLA_SVG}</button>
+  <div class="bnome">BUSSOLA</div>
+  <p class="bmotto">&laquo;Tieni la rotta. Su ogni commessa.&raquo;</p></div>`;
 }
 function pgSetup(){
-  return logoBox() + `<div class="card"><h2>Crea il PIN di accesso</h2>
-  <p class="muted" style="margin-bottom:10px">Al primo avvio l'app va protetta: il PIN blocca
-  l'accesso ai dati su questo dispositivo. Potrai attivare anche Face ID / Touch ID.</p>
-  <p><input class="search" id="pin1" type="password" inputmode="numeric" maxlength="8" placeholder="PIN (4-8 cifre)"></p>
-  <p><input class="search" id="pin2" type="password" inputmode="numeric" maxlength="8" placeholder="Ripeti PIN"></p>
-  <p><button class="btn" style="width:100%" onclick="creaPin()">Crea PIN ed entra</button></p></div>`;
+  return `<div class="lockwrap">${loginHero("creaPin()")}
+  <div class="lockform">
+  <img src="logo.png" class="blogo" alt="Cosedil">
+  <h2>COSEDIL &middot; Sistema di controllo Commesse</h2>
+  <p class="lsub">Dipartimento Project Control &middot; accesso riservato</p>
+  <label>Crea il PIN (4-8 cifre)</label>
+  <input class="search" id="pin1" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password">
+  <label>Ripeti il PIN</label>
+  <input class="search" id="pin2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"
+    onkeydown="if(event.key==='Enter')creaPin()">
+  <p class="bgo">Scegli il PIN, poi <b>tocca la bussola</b> per entrare.<br>
+  <small style="color:#667788">Potrai attivare anche Face ID / Touch ID.</small></p>
+  <button class="btn" style="width:100%" onclick="creaPin()">Crea PIN ed entra</button>
+  <p class="lver">Cosedil SpA BUSSOLA &middot; app mobile &middot; i dati restano sul dispositivo</p>
+  </div></div>`;
 }
 function pgLock(){
   const bio = bioAttivo() && bioSupportato();
   if(bio && !window._faceTried){ window._faceTried=true; setTimeout(faceSblocca, 350); }
-  return logoBox() + `<div class="card"><h2>Accesso</h2>
-  ${bio?`<p><button class="btn" style="width:100%" onclick="faceSblocca()">&#128100; Sblocca con Face ID / Touch ID</button></p>
-  <p class="muted" style="text-align:center;margin:8px 0">oppure</p>`:""}
-  <p><input class="search" id="pin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN"
-     onkeydown="if(event.key==='Enter')provaPin()"></p>
-  <p><button class="btn ${bio?'ghost':''}" style="width:100%" onclick="provaPin()">Entra</button></p>
-  <p id="pinerr" class="neg" style="text-align:center;font-size:13px;min-height:18px"></p>
-  <p class="muted" style="text-align:center"><a href="#" onclick="resetTotale();return false"
-     style="color:var(--muted)">PIN dimenticato? Reimposta l'app (cancella i dati)</a></p></div>`;
+  return `<div class="lockwrap">${loginHero(bio ? "faceSblocca()" : "provaPin()")}
+  <div class="lockform">
+  <img src="logo.png" class="blogo" alt="Cosedil">
+  <h2>COSEDIL &middot; Sistema di controllo Commesse</h2>
+  <p class="lsub">Dipartimento Project Control &middot; accesso riservato</p>
+  ${bio?`<button class="btn" style="width:100%" onclick="faceSblocca()">&#128100; Sblocca con Face ID / Touch ID</button>
+  <p class="muted" style="text-align:center;margin:10px 0 0">oppure usa il PIN</p>`:""}
+  <label>PIN</label>
+  <input class="search" id="pin" type="password" inputmode="numeric" maxlength="8"
+    onkeydown="if(event.key==='Enter')provaPin()">
+  <p class="bgo">Inserisci il PIN, poi <b>tocca la bussola</b> per entrare.
+  <small style="color:#667788">(o premi Invio)</small></p>
+  <button class="btn ${bio?'ghost':''}" style="width:100%" onclick="provaPin()">Entra</button>
+  <p id="pinerr" class="neg" style="text-align:center;font-size:13px;min-height:18px;margin-top:8px"></p>
+  <p class="lver"><a href="#" onclick="resetTotale();return false" style="color:#aab">
+  PIN dimenticato? Reimposta l'app (cancella i dati)</a></p>
+  </div></div>`;
 }
 
 /* ============================== dati ============================== */
@@ -563,12 +620,14 @@ function render(){
   const navEl = document.querySelector("nav.bottom");
   const footEl = document.querySelector("footer");
   // cancello d'ingresso: prima si crea il PIN, poi a ogni apertura si sblocca
+  const hdrEl = document.querySelector("header.top");
   if(!protetta() || !sbloccata()){
     app.innerHTML = protetta() ? pgLock() : pgSetup();
-    back.style.display = "none"; navEl.style.display = "none"; footEl.style.display = "none";
+    back.style.display = "none"; navEl.style.display = "none";
+    footEl.style.display = "none"; hdrEl.style.display = "none";
     window.scrollTo(0,0); return;
   }
-  navEl.style.display = ""; footEl.style.display = "";
+  navEl.style.display = ""; footEl.style.display = ""; hdrEl.style.display = "";
   let nav = "home";
   if (h.startsWith("#c/")){ app.innerHTML = pgCommessa(parseInt(h.slice(3),10)); nav="commesse"; back.style.display=""; back.href="#commesse"; }
   else if (h === "#dash"){ app.innerHTML = pgDash(); nav="dash"; back.style.display="none"; }
