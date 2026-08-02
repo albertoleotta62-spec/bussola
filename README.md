@@ -1,4 +1,4 @@
-# 🧭 BUSSOLA mobile
+# 🧭 Cosedil SpA BUSSOLA (mobile)
 
 Versione tascabile (PWA) del sistema di controllo commesse: dashboard KPI,
 avanzamento consuntivato e dell'ultimo periodo, confronto fra le revisioni di

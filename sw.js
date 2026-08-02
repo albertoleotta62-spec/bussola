@@ -1,7 +1,7 @@
 /* BUSSOLA mobile - service worker: cache del guscio app per l'uso offline.
    I DATI (bussola_dati.json) non vengono mai messi in cache qui: restano in
    localStorage, gestiti dall'app. */
-const CACHE = "bussola-v1";
+const CACHE = "bussola-v2";
 const SHELL = ["./", "index.html", "manifest.webmanifest",
                "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 

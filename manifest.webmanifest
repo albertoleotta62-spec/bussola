@@ -1,6 +1,6 @@
 {
-  "name": "BUSSOLA - Controllo Commesse",
-  "short_name": "BUSSOLA",
+  "name": "Cosedil SpA BUSSOLA",
+  "short_name": "Cosedil BUSSOLA",
   "description": "Dashboard KPI e avanzamento commesse (COSEDIL)",
   "start_url": "./",
   "scope": "./",
