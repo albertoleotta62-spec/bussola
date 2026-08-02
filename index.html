@@ -97,8 +97,9 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
 <body>
 <header class="top">
   <a class="back" id="btnback" style="display:none" href="#home">&#8249;</a>
-  <span class="logo">&#129517;</span>
-  <h1>Cosedil SpA BUSSOLA <span class="sub" id="subtitle">Controllo Commesse</span></h1>
+  <span style="background:#fff;border-radius:8px;padding:4px 8px;display:inline-flex;align-items:center">
+    <img src="logo.png" alt="Cosedil" style="height:22px"></span>
+  <h1>BUSSOLA <span class="sub" id="subtitle">Controllo Commesse</span></h1>
 </header>
 <main id="app"></main>
 <nav class="bottom">
@@ -152,6 +153,83 @@ function act(c, cat){ return (c.act||{})[cat] || Array(12).fill(null); }
 function margA(c,m){ const f=act(c,"Forecast")[m-1], cd=act(c,"Costi diretti")[m-1], ci=act(c,"Costi Indiretti")[m-1];
   if(f==null&&cd==null&&ci==null) return null; return (f||0)-(cd||0)-(ci||0); }
 function margB(c,r,m){ return (bud(c,r,"Forecast")[m-1]||0)-(bud(c,r,"Costi diretti")[m-1]||0)-(bud(c,r,"Costi Indiretti")[m-1]||0); }
+
+/* ================= sicurezza: PIN + Face ID (verifica locale) ================= */
+async function sha(t){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("");}
+const b64=a=>btoa(String.fromCharCode(...new Uint8Array(a)));
+const unb64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const protetta=()=>!!localStorage.getItem("b_pin");
+const sbloccata=()=>sessionStorage.getItem("b_unlocked")==="1";
+const bioAttivo=()=>!!localStorage.getItem("b_bio");
+const bioSupportato=()=>!!(window.PublicKeyCredential && navigator.credentials);
+async function creaPin(){
+  const p1=document.getElementById("pin1").value, p2=document.getElementById("pin2").value;
+  if(!/^\d{4,8}$/.test(p1)){ alert("Il PIN deve avere da 4 a 8 cifre."); return; }
+  if(p1!==p2){ alert("I due PIN non coincidono."); return; }
+  localStorage.setItem("b_pin", await sha(p1));
+  sessionStorage.setItem("b_unlocked","1");
+  if(bioSupportato() && confirm("PIN creato. Vuoi attivare anche lo sblocco col volto o l'impronta (Face ID / Touch ID)?"))
+    await faceAttiva(true);
+  render();
+}
+async function provaPin(){
+  const p=document.getElementById("pin").value;
+  if(await sha(p)===localStorage.getItem("b_pin")){
+    sessionStorage.setItem("b_unlocked","1"); render(); }
+  else { const el=document.getElementById("pinerr"); if(el) el.textContent="PIN errato, riprova."; }
+}
+async function faceAttiva(silente){
+  try{
+    const cred=await navigator.credentials.create({publicKey:{
+      challenge:crypto.getRandomValues(new Uint8Array(32)),
+      rp:{name:"Cosedil SpA BUSSOLA"},
+      user:{id:crypto.getRandomValues(new Uint8Array(16)),name:"utente@bussola",displayName:"Utente BUSSOLA"},
+      pubKeyCredParams:[{type:"public-key",alg:-7},{type:"public-key",alg:-257}],
+      authenticatorSelection:{authenticatorAttachment:"platform",userVerification:"required"},
+      timeout:60000}});
+    localStorage.setItem("b_bio", b64(cred.rawId));
+    if(!silente){ alert("Sblocco biometrico attivato."); render(); }
+  }catch(e){ if(!silente) alert("Non attivato: "+e.message); }
+}
+async function faceSblocca(){
+  try{
+    await navigator.credentials.get({publicKey:{
+      challenge:crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials:[{type:"public-key",id:unb64(localStorage.getItem("b_bio"))}],
+      userVerification:"required",timeout:60000}});
+    sessionStorage.setItem("b_unlocked","1"); render();
+  }catch(e){ const el=document.getElementById("pinerr");
+    if(el) el.textContent="Riconoscimento non riuscito: usa il PIN."; }
+}
+function resetTotale(){
+  if(confirm("Cancellare PIN, sblocco biometrico e TUTTI i dati caricati su questo dispositivo?")){
+    localStorage.clear(); sessionStorage.clear(); D=null; location.hash="#home"; render(); }
+}
+function logoBox(){
+  return '<div style="text-align:center;margin:26px 0 18px"><span style="background:#fff;border-radius:14px;padding:14px 22px;display:inline-block;box-shadow:0 2px 10px rgba(20,35,70,.12)"><img src="logo.png" alt="Cosedil" style="height:44px"></span><div style="margin-top:12px;font-weight:800;color:var(--navy);font-size:18px">Cosedil SpA BUSSOLA</div><div class="muted">Controllo Commesse</div></div>';
+}
+function pgSetup(){
+  return logoBox() + `<div class="card"><h2>Crea il PIN di accesso</h2>
+  <p class="muted" style="margin-bottom:10px">Al primo avvio l'app va protetta: il PIN blocca
+  l'accesso ai dati su questo dispositivo. Potrai attivare anche Face ID / Touch ID.</p>
+  <p><input class="search" id="pin1" type="password" inputmode="numeric" maxlength="8" placeholder="PIN (4-8 cifre)"></p>
+  <p><input class="search" id="pin2" type="password" inputmode="numeric" maxlength="8" placeholder="Ripeti PIN"></p>
+  <p><button class="btn" style="width:100%" onclick="creaPin()">Crea PIN ed entra</button></p></div>`;
+}
+function pgLock(){
+  const bio = bioAttivo() && bioSupportato();
+  if(bio && !window._faceTried){ window._faceTried=true; setTimeout(faceSblocca, 350); }
+  return logoBox() + `<div class="card"><h2>Accesso</h2>
+  ${bio?`<p><button class="btn" style="width:100%" onclick="faceSblocca()">&#128100; Sblocca con Face ID / Touch ID</button></p>
+  <p class="muted" style="text-align:center;margin:8px 0">oppure</p>`:""}
+  <p><input class="search" id="pin" type="password" inputmode="numeric" maxlength="8" placeholder="PIN"
+     onkeydown="if(event.key==='Enter')provaPin()"></p>
+  <p><button class="btn ${bio?'ghost':''}" style="width:100%" onclick="provaPin()">Entra</button></p>
+  <p id="pinerr" class="neg" style="text-align:center;font-size:13px;min-height:18px"></p>
+  <p class="muted" style="text-align:center"><a href="#" onclick="resetTotale();return false"
+     style="color:var(--muted)">PIN dimenticato? Reimposta l'app (cancella i dati)</a></p></div>`;
+}
 
 /* ============================== dati ============================== */
 async function caricaAuto(){
@@ -439,6 +517,13 @@ function pgDati(){
     <p style="margin-top:10px"><button class="btn ghost small" onclick="datiDemo()">Dati demo</button>
     &nbsp;<button class="btn ghost small" onclick="localStorage.removeItem('b_dati');D=null;render()">Cancella dati</button></p>
   </div>
+  <div class="card"><h3>Sicurezza</h3>
+    <p class="muted" style="margin-bottom:10px">PIN attivo su questo dispositivo
+    ${bioAttivo()?"&middot; sblocco biometrico <b>attivo</b>":(bioSupportato()?"&middot; biometria disponibile":"")}.</p>
+    <p><button class="btn ghost small" onclick="bloccaOra()">&#128274; Blocca ora</button>
+    &nbsp;<button class="btn ghost small" onclick="cambiaPin()">Cambia PIN</button>
+    ${bioSupportato()?`&nbsp;<button class="btn ghost small" onclick="bioToggle()">${bioAttivo()?"Disattiva":"Attiva"} Face ID</button>`:""}</p>
+  </div>
   <div class="card"><h3>Come si aggiornano i dati</h3>
     <p class="muted">1. Da BUSSOLA (PC) genera il file <b>bussola_dati.json</b> con lo script di
     esportazione (o la pagina dedicata).<br>
@@ -459,10 +544,31 @@ function pgInfo(){
 }
 
 /* ============================== router ============================== */
+async function cambiaPin(){
+  const att = prompt("PIN attuale:"); if(att==null) return;
+  if(await sha(att)!==localStorage.getItem("b_pin")){ alert("PIN errato."); return; }
+  const n1 = prompt("Nuovo PIN (4-8 cifre):"); if(n1==null) return;
+  if(!/^\d{4,8}$/.test(n1)){ alert("PIN non valido."); return; }
+  const n2 = prompt("Ripeti il nuovo PIN:");
+  if(n1!==n2){ alert("I due PIN non coincidono."); return; }
+  localStorage.setItem("b_pin", await sha(n1)); alert("PIN aggiornato.");
+}
+function bioToggle(){ if(bioAttivo()){ localStorage.removeItem("b_bio"); render(); } else faceAttiva(); }
+function bloccaOra(){ sessionStorage.removeItem("b_unlocked"); window._faceTried=false; render(); }
+
 function render(){
   const h = location.hash || "#home";
   const app = document.getElementById("app");
   const back = document.getElementById("btnback");
+  const navEl = document.querySelector("nav.bottom");
+  const footEl = document.querySelector("footer");
+  // cancello d'ingresso: prima si crea il PIN, poi a ogni apertura si sblocca
+  if(!protetta() || !sbloccata()){
+    app.innerHTML = protetta() ? pgLock() : pgSetup();
+    back.style.display = "none"; navEl.style.display = "none"; footEl.style.display = "none";
+    window.scrollTo(0,0); return;
+  }
+  navEl.style.display = ""; footEl.style.display = "";
   let nav = "home";
   if (h.startsWith("#c/")){ app.innerHTML = pgCommessa(parseInt(h.slice(3),10)); nav="commesse"; back.style.display=""; back.href="#commesse"; }
   else if (h === "#dash"){ app.innerHTML = pgDash(); nav="dash"; back.style.display="none"; }
