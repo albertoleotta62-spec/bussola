@@ -57,7 +57,8 @@ main{padding:14px;max-width:760px;margin:0 auto}
 .search{width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;
   background:#fff;margin-bottom:10px}
 .clist .item{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;
-  box-shadow:0 1px 3px rgba(20,35,70,.07);display:block;cursor:pointer}
+  box-shadow:0 1px 3px rgba(20,35,70,.07);display:block;cursor:pointer;
+  text-decoration:none;color:var(--ink)}
 .clist b{color:var(--navy);font-size:14px}
 .clist .row2{display:flex;justify-content:space-between;margin-top:5px;font-size:12px;color:var(--muted)}
 .badge{display:inline-block;border-radius:8px;padding:2px 8px;font-size:10.5px;font-weight:700}
@@ -72,6 +73,15 @@ table.t td:first-child{text-align:left;color:var(--muted)}
 table.t tr.tot td{font-weight:800;color:var(--navy);border-top:2px solid var(--navy)}
 .hbar{height:7px;background:#edf1f7;border-radius:4px;overflow:hidden;margin-top:3px}
 .hbar i{display:block;height:100%;border-radius:4px}
+.hbar2{height:13px;background:#edf1f7;border-radius:7px;overflow:hidden;margin-top:8px;display:flex}
+.hbar2 i{display:block;height:100%}
+.p15{display:block;font-size:9.5px;color:var(--warn);margin-top:2px;font-weight:600}
+.tbar{display:flex;gap:8px;margin-bottom:8px}
+.sel{flex:1;min-width:0;padding:9px 8px;border:1.5px solid var(--line);border-radius:10px;
+  font-size:12.5px;background:#fff;color:var(--ink);font-family:inherit}
+.row3{display:flex;justify-content:space-between;margin-top:3px;font-size:11.5px;color:var(--muted)}
+table.t tr.sel td{background:#eef3fb}
+table.t td.rev{text-align:left;color:var(--navy);font-weight:700}
 nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;display:flex;z-index:30;
   border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);
   box-shadow:0 -2px 12px rgba(20,35,70,.08)}
@@ -141,6 +151,9 @@ let D = null;                       // dati caricati
 let rev = localStorage.getItem("b_rev") || "T2";
 let catSel = "F";
 let filtroDT = "";
+let filtroPM = "";
+let ordina = localStorage.getItem("b_ord") || "nome";
+let soloMancanti = false;
 
 const eur = v => (v==null||isNaN(v)) ? "–" :
   Math.round(v).toLocaleString("it-IT");
@@ -172,6 +185,35 @@ function act(c, cat){ return (c.act||{})[cat] || Array(12).fill(null); }
 function margA(c,m){ const f=act(c,"Forecast")[m-1], cd=act(c,"Costi diretti")[m-1], ci=act(c,"Costi Indiretti")[m-1];
   if(f==null&&cd==null&&ci==null) return null; return (f||0)-(cd||0)-(ci||0); }
 function margB(c,r,m){ return (bud(c,r,"Forecast")[m-1]||0)-(bud(c,r,"Costi diretti")[m-1]||0)-(bud(c,r,"Costi Indiretti")[m-1]||0); }
+
+/* ---- vita della commessa: dall'inizio dei lavori a oggi ----
+   prodotto = progressivo Ricavi SIL al 31/12/25 + produzione registrata nel
+   2026 (consuntivata, provvisoria o parziale). SAL BIS ed extra restano fuori:
+   non sono contratto, quindi non entrano nella percentuale di avanzamento. */
+function vita(c){
+  const k = mesiCons(), p = c.preg || {};
+  const r26 = S(act(c,"Forecast")), d26 = S(act(c,"Costi diretti")), i26 = S(act(c,"Costi Indiretti"));
+  const prod = (p.ricavi||0) + r26;
+  const costi = (p.cd||0) + (p.ci||0) + d26 + i26;
+  // stima a fine 2026: actual dei mesi chiusi + budget della revisione sul resto
+  const fine26 = (p.ricavi||0) + S(slice(act(c,"Forecast"),1,k)) + S(slice(bud(c,rev,"Forecast"),k+1,12));
+  return { contratto:p.contratto||null, ric25:p.ricavi||0, ric26:r26,
+           prod, costi, marg:prod-costi, fine26 };
+}
+/* ---- flussi fuori margine core: solo consuntivo (SAL BIS, extra, CCT) ---- */
+function extra(c){
+  const sb = S(act(c,"SAL BIS")), ex = S(act(c,"Ricavi extra contrattuali")), cc = S(act(c,"CCT"));
+  return { sb, ex, cc, tot:sb+ex+cc,
+           sbB:S(bud(c,rev,"SAL BIS")), exB:S(bud(c,rev,"Ricavi extra contrattuali")), ccB:S(bud(c,rev,"CCT")) };
+}
+/* Il parziale al 15 si mostra solo quando aggiunge informazione: nei mesi
+   ancora "Parziale al 15" l'avanzamento E' gia' quel valore. */
+function mostra15(p15, a){ return p15!=null && (a==null || Math.round(p15)!==Math.round(a)); }
+/* ---- totali annui di budget di una revisione ---- */
+function annoRev(c,r){
+  const ric = S(bud(c,r,"Forecast")), co = S(bud(c,r,"Costi diretti")) + S(bud(c,r,"Costi Indiretti"));
+  return { ric, costi:co, marg:ric-co };
+}
 
 /* ================= sicurezza: PIN + Face ID (verifica locale) ================= */
 async function sha(t){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));
@@ -370,6 +412,89 @@ function barChart(serieB, serieA, mMax){
   return g;
 }
 
+/* ---- A. vita della commessa: a che punto siamo sul contratto ---- */
+function cardVita(c){
+  const v = vita(c);
+  if(!v.contratto && !v.ric25) return "";      // niente pregresso: la scheda 2026 basta
+  const q  = v.contratto ? v.prod/v.contratto : null;
+  const qf = v.contratto ? v.fine26/v.contratto : null;
+  const barra = v.contratto ? `<div class="hbar2">
+      <i style="width:${Math.min(100,Math.max(0,q*100))}%;background:var(--blue)"></i>
+      <i style="width:${Math.min(100-Math.min(100,q*100),Math.max(0,(qf-q)*100))}%;background:#c9d4e6"></i>
+    </div>
+    <div class="legend"><span><i style="background:var(--blue)"></i>prodotto ${pct(q)}</span>
+      <span><i style="background:#c9d4e6"></i>previsto a fine ${D.esercizio} ${pct(qf)}</span></div>
+    <div class="muted" style="margin-top:6px">Residuo da produrre
+      <b style="color:var(--navy)">${eurK(v.contratto-v.prod)}</b></div>`
+    : `<div class="muted" style="margin-top:6px">Importo contratto non presente: percentuale non calcolabile.</div>`;
+  return `
+  <div class="card">
+    <h2>Vita della commessa</h2>
+    <div class="grid2">
+      <div class="statmini"><div class="lab">IMPORTO CONTRATTO</div>
+        <div class="val">${v.contratto?eurK(v.contratto):"–"}</div></div>
+      <div class="statmini"><div class="lab">PRODOTTO A VITA</div>
+        <div class="val">${eurK(v.prod)}</div></div>
+    </div>
+    ${barra}
+    <div class="muted" style="margin-top:8px">Margine a vita
+      <b class="${v.marg<0?'neg':'pos'}">${eurK(v.marg)}</b>
+      (${pct(v.prod?v.marg/v.prod:null)}) &middot; costi ${eurK(v.costi)}</div>
+    <p class="muted" style="margin-top:8px;font-size:11px">Prodotto = progressivo al 31/12/25
+      ${eurK(v.ric25)} + produzione ${D.esercizio} ${eurK(v.ric26)}. SAL BIS ed extra sono fuori
+      contratto e non entrano nella percentuale.</p>
+  </div>`;
+}
+/* ---- B. altri flussi di ricavo e marginalita' totale ---- */
+function cardExtra(c, pA, mA){
+  const e = extra(c);
+  if(!(e.tot || e.sbB || e.exB || e.ccB)) return "";
+  const riga = (lab, a, b) => (a||b) ? `<tr><td>${lab}</td><td>${b?eur(b):""}</td>
+      <td><b style="color:var(--navy)">${a?eur(a):"–"}</b></td></tr>` : "";
+  const mt = mA + e.tot, ricT = pA + e.tot;
+  return `
+  <div class="card">
+    <h2>Altri flussi (fuori margine core)</h2>
+    <table class="t">
+      <thead><tr><th>Voce</th><th>Budget ${rev}</th><th>Consuntivo</th></tr></thead>
+      <tbody>
+        ${riga("SAL BIS", e.sb, e.sbB)}
+        ${riga("Ricavi extra contrattuali", e.ex, e.exB)}
+        ${riga("CCT", e.cc, e.ccB)}
+        <tr class="tot"><td>Marginalit&agrave; totale</td><td></td>
+          <td class="${mt<0?'neg':'pos'}">${eur(mt)}</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="margin-top:8px;font-size:11px">Marginalit&agrave; totale = margine core
+      ${eurK(mA)} + ${eurK(e.tot)} di questi flussi, pari al ${pct(ricT?mt/ricT:null)} dei ricavi
+      complessivi. Sono voci a solo consuntivo: non hanno budget se non inserito a mano.</p>
+  </div>`;
+}
+/* ---- C. come e' cambiato il budget da T1 a T4 ---- */
+function cardRevisioni(c){
+  const rs = REVS.filter(r => (c.bud||{})[r]);
+  if(rs.length < 2) return "";
+  const righe = rs.map(r => { const a = annoRev(c,r);
+    return `<tr class="${r===rev?'sel':''}"><td class="rev">${r}</td>
+      <td>${eurK(a.ric)}</td><td>${eurK(a.costi)}</td>
+      <td class="${a.marg<0?'neg':'pos'}">${eurK(a.marg)}</td>
+      <td>${a.ric?pct(a.marg/a.ric):"–"}</td></tr>`; }).join("");
+  const p = annoRev(c, rs[0]), u = annoRev(c, rs[rs.length-1]);
+  const dR = u.ric-p.ric, dM = u.marg-p.marg;
+  return `
+  <div class="card">
+    <h2>Come &egrave; cambiato il budget</h2>
+    <table class="t">
+      <thead><tr><th>Rev.</th><th>Ricavi</th><th>Costi</th><th>Margine</th><th>Marg.%</th></tr></thead>
+      <tbody>${righe}</tbody>
+    </table>
+    <p class="muted" style="margin-top:8px;font-size:11px">Da ${rs[0]} a ${rs[rs.length-1]}:
+      ricavi <b class="${dR<0?'neg':'pos'}">${(dR>=0?"+":"")+eurK(dR)}</b> &middot;
+      margine <b class="${dM<0?'neg':'pos'}">${(dM>=0?"+":"")+eurK(dM)}</b>.
+      Totali dell'anno ${D.esercizio}, riga evidenziata = revisione selezionata.</p>
+  </div>`;
+}
+
 /* ============================== pagine ============================== */
 function pgHome(){
   if(!D) return pgNoDati();
@@ -458,38 +583,90 @@ function pgDash(){
     }).join("")}
   </div>`;
 }
+const ORDINI = [["nome","Nome (A-Z)"], ["prod","Produzione (piu' alta)"],
+  ["marg","Margine (peggiori prima)"], ["scost","Scostamento vs budget (peggiori)"],
+  ["avanz","% sul contratto (piu' avanzate)"]];
+function setDT(v){
+  filtroDT = v;
+  // il PM scelto puo' non appartenere al nuovo DT: in quel caso torna a "tutti"
+  if(filtroPM && !D.commesse.some(c => (!filtroDT || c.dt===filtroDT) && c.pm===filtroPM)) filtroPM = "";
+  render();
+}
+function righeCommesse(){
+  const q = (window._q || "").toLowerCase();
+  const k = mesiCons(), ml = meseLavoro();
+  const out = D.commesse.map((c,i) => {
+    let pA=0, pB=0, ma=0, mb=0;
+    for(let m=1;m<=k;m++){
+      pA += act(c,"Forecast")[m-1]||0; pB += bud(c,rev,"Forecast")[m-1]||0;
+      const x = margA(c,m); if(x!=null) ma += x; mb += margB(c,rev,m);
+    }
+    let um=0; for(let m=1;m<=12;m++) if(act(c,"Forecast")[m-1]!=null) um=m;
+    const v = vita(c);
+    return { c, i, pA, ma, um, scost: ma-mb,
+             dProd: pB ? (pA-pB)/pB : null,
+             avanz: v.contratto ? v.prod/v.contratto : null,
+             manca: act(c,"Forecast")[ml-1]==null };
+  }).filter(r =>
+      (!filtroDT || r.c.dt===filtroDT) && (!filtroPM || r.c.pm===filtroPM) &&
+      (!soloMancanti || r.manca) &&
+      (!q || (r.c.c+" "+(r.c.pm||"")+" "+(r.c.dt||"")).toLowerCase().includes(q)));
+  const cmp = { nome:(a,b)=>a.c.c.localeCompare(b.c.c,"it"),
+    prod:(a,b)=>b.pA-a.pA, marg:(a,b)=>a.ma-b.ma, scost:(a,b)=>a.scost-b.scost,
+    avanz:(a,b)=>(b.avanz==null?-1:b.avanz)-(a.avanz==null?-1:a.avanz) }[ordina];
+  if(cmp) out.sort(cmp);
+  return out;
+}
+function htmlLista(righe){
+  if(!righe.length) return '<div class="muted" style="padding:20px;text-align:center">nessuna commessa trovata</div>';
+  return righe.map(r => {
+    const st = r.um ? (D.mesi_stato[r.um]||"") : "";
+    const bcl = st==="Consuntivato"?"b-cons":(st==="Provvisorio"?"b-prov":(st==="Parziale al 15"?"b-parz":"b-open"));
+    return `<a class="item" href="#c/${r.i}"><b>${esc(r.c.c)}</b>
+      <div class="row2"><span>${esc(r.c.dt||"")} &middot; ${esc(r.c.pm||"")}</span>
+      <span>${r.um?`<span class="badge ${bcl}">${MESI[r.um-1]}</span>`:'<span class="badge b-open">–</span>'}</span></div>
+      <div class="row2"><span>prod. cons. <b style="color:var(--navy)">${eurK(r.pA)}</b></span>
+      <span>margine <b class="${r.ma<0?'neg':'pos'}">${eurK(r.ma)}</b></span></div>
+      <div class="row3"><span>${r.avanz!=null?`avanz. contratto <b style="color:var(--navy)">${pct(r.avanz)}</b>`:"&nbsp;"}</span>
+      <span>${r.dProd!=null?`prod. vs ${rev} <b class="${r.dProd<0?'neg':'pos'}">${(r.dProd>=0?"+":"")+pct(r.dProd)}</b>`:""}</span></div></a>`;
+  }).join("");
+}
 function pgCommesse(){
   if(!D) return pgNoDati();
-  const q = (document.getElementById("q")?.value || window._q || "").toLowerCase();
+  const q = (document.getElementById("q")?.value || window._q || "");
   window._q = q;
   const dts = [...new Set(D.commesse.map(c=>c.dt).filter(Boolean))].sort();
-  const k = mesiCons();
-  const lista = D.commesse
-    .filter(c => (!filtroDT || c.dt===filtroDT) && (!q || (c.c+" "+(c.pm||"")).toLowerCase().includes(q)))
-    .map((c) => {
-      const i = D.commesse.indexOf(c);
-      let pA=0, ma=0; for(let m=1;m<=k;m++){ pA+=act(c,"Forecast")[m-1]||0; const x=margA(c,m); if(x!=null) ma+=x; }
-      // ultimo mese con dati
-      let um=0; for(let m=1;m<=12;m++) if(act(c,"Forecast")[m-1]!=null) um=m;
-      const st = um ? (D.mesi_stato[um]||"") : "";
-      const bcl = st==="Consuntivato"?"b-cons":(st==="Provvisorio"?"b-prov":(st==="Parziale al 15"?"b-parz":"b-open"));
-      return `<a class="item" href="#c/${i}"><b>${esc(c.c)}</b>
-        <div class="row2"><span>${esc(c.dt||"")} &middot; ${esc(c.pm||"")}</span>
-        <span>${um?`<span class="badge ${bcl}">${MESI[um-1]}</span>`:'<span class="badge b-open">–</span>'}</span></div>
-        <div class="row2"><span>prod. cons. <b style="color:var(--navy)">${eurK(pA)}</b></span>
-        <span>margine <b class="${ma<0?'neg':'pos'}">${eurK(ma)}</b></span></div></a>`;
-    }).join("");
+  const pms = [...new Set(D.commesse.filter(c => !filtroDT || c.dt===filtroDT)
+    .map(c=>c.pm).filter(Boolean))].sort();
+  const ml = meseLavoro();
+  const righe = righeCommesse();
   return `
-  <input class="search" id="q" placeholder="&#128269; cerca commessa o PM..." value="${esc(q)}"
+  <input class="search" id="q" placeholder="&#128269; cerca commessa, PM o DT..." value="${esc(q)}"
     oninput="window._q=this.value;renderLista()">
+  <div class="tbar">
+    <select class="sel" onchange="ordina=this.value;localStorage.setItem('b_ord',ordina);render()">
+      ${ORDINI.map(([v,l])=>`<option value="${v}"${v===ordina?" selected":""}>${l}</option>`).join("")}
+    </select>
+    <select class="sel" onchange="filtroPM=this.value;render()">
+      <option value="">tutti i PM</option>
+      ${pms.map(p=>`<option value="${esc(p)}"${p===filtroPM?" selected":""}>${esc(p)}</option>`).join("")}
+    </select>
+  </div>
   <div class="chips" id="chipsdt">${['',...dts].map(d=>
-    `<button class="chip ${d===filtroDT?'on':''}" onclick="filtroDT='${esc(d)}';render()">${d||'tutti'}</button>`).join("")}</div>
-  <div class="clist" id="lista">${lista || '<div class="muted" style="padding:20px;text-align:center">nessuna commessa trovata</div>'}</div>`;
+    `<button class="chip ${d===filtroDT?'on':''}" data-v="${esc(d)}"
+      onclick="setDT(this.dataset.v)">${esc(d)||'tutti i DT'}</button>`).join("")}</div>
+  <div class="chips"><button class="chip ${soloMancanti?'on':''}"
+    onclick="soloMancanti=!soloMancanti;render()">&#9888;&#65039; manca ${MESI[ml-1]}</button>
+    <span class="muted" id="conta" style="align-self:center">${righe.length} commesse</span></div>
+  <div class="clist" id="lista">${htmlLista(righe)}</div>`;
 }
 function renderLista(){
   const el = document.getElementById("lista");
-  if(el){ const tmp = document.createElement("div"); tmp.innerHTML = pgCommesse();
-    el.innerHTML = tmp.querySelector("#lista").innerHTML; }
+  if(!el) return;
+  const righe = righeCommesse();
+  el.innerHTML = htmlLista(righe);
+  const ct = document.getElementById("conta");
+  if(ct) ct.textContent = righe.length + " commesse";
 }
 function pgCommessa(i){
   const c = D?.commesse[i]; if(!c) return pgNoDati();
@@ -506,6 +683,8 @@ function pgCommessa(i){
   // margine dell'ultimo periodo SOLO se ci sono anche i costi: col parziale
   // (sola produzione) un "margine" pari alla produzione sarebbe fuorviante
   const upM = (upCD==null&&upCI==null)?null:(upF||0)-(upCD||0)-(upCI||0);
+  // parziale al 15 storicizzato: resta consultabile anche dopo la provvisoria
+  const up15 = um ? (c.parz||[])[um-1] : null;
   // B+C stima anno: actual 1..k + budget k+1..12
   const bc = (cat)=> S(slice(act(c,cat),1,k)) + S(slice(bud(c,rev,cat),k+1,12));
   const bcP = bc("Forecast"), bcM = bc("Forecast")-bc("Costi diretti")-bc("Costi Indiretti");
@@ -516,13 +695,16 @@ function pgCommessa(i){
     if(serie){ sB[m] = bud(c,rev,serie)[m]||0; sA[m] = act(c,serie)[m]; }
     else { sB[m] = margB(c,rev,m+1); const x = margA(c,m+1); sA[m] = x; }
   }
-  let righe = "";
+  let righe = "", ha15 = false;
   for(let m=1;m<=12;m++){
     const b = sB[m-1], a2 = sA[m-1];
     const dl = (a2!=null && b) ? (a2-b)/b : null;
     const stm = D.mesi_stato[m]||"";
     const bcl = stm==="Consuntivato"?"b-cons":(stm==="Provvisorio"?"b-prov":(stm==="Parziale al 15"?"b-parz":"b-open"));
-    righe += `<tr><td><span class="badge ${bcl}" style="min-width:30px;text-align:center">${MESI[m-1]}</span></td>
+    const p15 = (catSel==="F") ? (c.parz||[])[m-1] : null;
+    const v15 = mostra15(p15, a2); if(v15) ha15 = true;
+    righe += `<tr><td><span class="badge ${bcl}" style="min-width:30px;text-align:center">${MESI[m-1]}</span>
+      ${v15?`<span class="p15">al 15: ${eurK(p15)}</span>`:""}</td>
       <td>${b?eur(b):""}</td><td>${a2==null?"":eur(a2)}</td>
       <td class="${dl==null?'':(dl<0 ^ (catSel==='CD'||catSel==='CI') ? 'neg':'pos')}">${dl==null?"":pct(dl)}</td></tr>`;
   }
@@ -530,10 +712,9 @@ function pgCommessa(i){
   return `
   <div class="card">
     <h2>${esc(c.c)}</h2>
-    <div class="muted">DT <b>${esc(c.dt||"–")}</b> &middot; PM <b>${esc(c.pm||"–")}</b>
-      ${c.preg?.contratto?` &middot; contratto <b>${eurK(c.preg.contratto)}</b>`:""}</div>
-    ${c.preg? `<div class="muted" style="margin-top:4px">Prog. al 31/12/25: ricavi ${eurK(c.preg.ricavi)} &middot; costi ${eurK((c.preg.cd||0)+(c.preg.ci||0))}</div>`:""}
+    <div class="muted">DT <b>${esc(c.dt||"–")}</b> &middot; PM <b>${esc(c.pm||"–")}</b></div>
   </div>
+  ${cardVita(c)}
   <div class="grid2">
     <div class="card statmini"><div class="lab">AVANZAMENTO CONSUNTIVATO (gen&ndash;${k?MESI[k-1]:'–'})</div>
       <div class="val">${eurK(pA)}</div>
@@ -544,9 +725,13 @@ function pgCommessa(i){
       <div class="val">${eurK(upF)}</div>
       <div class="muted">${um?`<span class="badge ${stUm==="Consuntivato"?"b-cons":(stUm==="Provvisorio"?"b-prov":"b-parz")}">${esc(stUm)}</span>`:"nessun dato"}
       ${upM!=null?` margine <b class="${upM<0?'neg':'pos'}">${eurK(upM)}</b>`:""}</div>
+      ${mostra15(up15,upF)?`<div class="muted" style="margin-top:4px">al 15 del mese
+        <b style="color:var(--warn)">${eurK(up15)}</b>${upF!=null?
+        ` &middot; seconda met&agrave; ${eurK(upF-up15)}`:""}</div>`:""}
       <div class="muted" style="margin-top:6px">Stima anno (B+C): <b style="color:var(--navy)">${eurK(bcP)}</b>
        &middot; margine <b class="${bcM<0?'neg':'pos'}">${eurK(bcM)}</b></div></div>
   </div>
+  ${cardExtra(c, pA, mA)}
   <div class="card">
     <h2>Budget vs Avanzamento</h2>
     ${chipsRev()}
@@ -560,8 +745,10 @@ function pgCommessa(i){
         <td>${totB?pct((totA-totB)/totB):""}</td></tr></tbody>
     </table>
     <p class="muted" style="margin-top:8px">L'avanzamento comprende consuntivato, provvisorio e parziale
-    (vedi colore del mese). &Delta;% = (avanzamento &minus; budget) / budget.</p>
-  </div>`;
+    (vedi colore del mese). &Delta;% = (avanzamento &minus; budget) / budget.
+    ${ha15?"<b>al 15</b> &egrave; la produzione registrata a met&agrave; mese, prima della provvisoria.":""}</p>
+  </div>
+  ${cardRevisioni(c)}`;
 }
 function pgDati(){
   const gen = D ? (D.generato||"").slice(0,16).replace("T"," ") : null;
