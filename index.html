@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F3864">
+<title>BUSSOLA · Controllo Commesse</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --navy:#1F3864; --blue:#2E5496; --gold:#BF8F00; --bg:#eef2f8; --card:#ffffff;
+  --ink:#243043; --muted:#6b7688; --ok:#2E8B57; --ko:#B23A48; --warn:#a15c00;
+  --line:#e3e8f1;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);
+  padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+header.top{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#16294b,#2E5496);
+  color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px;
+  box-shadow:0 2px 10px rgba(15,25,50,.25)}
+header.top .logo{font-size:22px}
+header.top h1{font-size:17px;font-weight:700;letter-spacing:.4px;flex:1}
+header.top .sub{font-size:11px;opacity:.8}
+main{padding:14px;max-width:760px;margin:0 auto}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;
+  box-shadow:0 1px 4px rgba(20,35,70,.08)}
+.card h2{font-size:15px;color:var(--navy);margin-bottom:10px}
+.card h3{font-size:13px;color:var(--navy);margin-bottom:6px}
+.muted{color:var(--muted);font-size:12px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{background:var(--card);border-radius:16px;padding:18px 14px;text-align:center;
+  box-shadow:0 1px 4px rgba(20,35,70,.08);cursor:pointer;border:0;text-decoration:none;color:var(--ink)}
+.tile .ico{font-size:30px}
+.tile b{display:block;margin-top:8px;color:var(--navy);font-size:14px}
+.tile span{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--card);border-radius:14px;padding:12px;box-shadow:0 1px 4px rgba(20,35,70,.08)}
+.kpi .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.kpi .val{font-size:20px;font-weight:800;color:var(--navy);margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .det{font-size:11.5px;margin-top:3px}
+.pos{color:var(--ok)} .neg{color:var(--ko)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:20px;padding:6px 14px;
+  font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.bars{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:8px}
+.bgroup{flex:1;display:flex;align-items:flex-end;gap:2px;height:100%;position:relative}
+.bar{flex:1;border-radius:3px 3px 0 0;min-height:2px}
+.bx{display:flex;gap:3px;margin-top:4px}
+.bx span{flex:1;text-align:center;font-size:9px;color:var(--muted)}
+.legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.search{width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;
+  background:#fff;margin-bottom:10px}
+.clist .item{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;
+  box-shadow:0 1px 3px rgba(20,35,70,.07);display:block;cursor:pointer}
+.clist b{color:var(--navy);font-size:14px}
+.clist .row2{display:flex;justify-content:space-between;margin-top:5px;font-size:12px;color:var(--muted)}
+.badge{display:inline-block;border-radius:8px;padding:2px 8px;font-size:10.5px;font-weight:700}
+.b-cons{background:#dff1e2;color:#1d6b3a}.b-prov{background:#fdf3d0;color:#7f6000}
+.b-parz{background:#fde5c8;color:#8d4d00}.b-open{background:#e8ecf3;color:#6b7688}
+table.t{width:100%;border-collapse:collapse;font-size:12.5px}
+table.t th{color:#fff;background:var(--navy);padding:6px 6px;font-size:11px;text-align:right}
+table.t th:first-child{text-align:left;border-radius:8px 0 0 0}
+table.t th:last-child{border-radius:0 8px 0 0}
+table.t td{padding:6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+table.t td:first-child{text-align:left;color:var(--muted)}
+table.t tr.tot td{font-weight:800;color:var(--navy);border-top:2px solid var(--navy)}
+.hbar{height:7px;background:#edf1f7;border-radius:4px;overflow:hidden;margin-top:3px}
+.hbar i{display:block;height:100%;border-radius:4px}
+nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;display:flex;z-index:30;
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);
+  box-shadow:0 -2px 12px rgba(20,35,70,.08)}
+nav.bottom a{flex:1;text-align:center;padding:8px 0 6px;font-size:10.5px;color:var(--muted);text-decoration:none}
+nav.bottom a .i{display:block;font-size:20px;line-height:1.25}
+nav.bottom a.on{color:var(--navy);font-weight:700}
+.btn{display:inline-block;background:var(--navy);color:#fff;border:0;border-radius:12px;
+  padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none}
+.btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.btn.small{padding:8px 12px;font-size:12.5px;border-radius:10px}
+.msg{border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:10px}
+.msg.ok{background:#dff1e2;color:#1d6b3a}.msg.warn{background:#fdf3d0;color:#7f6000}
+.back{color:#fff;text-decoration:none;font-size:22px;line-height:1;padding:4px 8px 4px 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.statmini .lab{font-size:10.5px;color:var(--muted)}
+.statmini .val{font-size:15px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.mstrip{display:flex;gap:3px;margin-top:8px}
+.mstrip i{flex:1;height:8px;border-radius:3px;background:#e8ecf3}
+.mstrip i.cons{background:#79b98a}.mstrip i.prov{background:#e9cf6b}.mstrip i.parz{background:#e5a45c}
+footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="back" id="btnback" style="display:none" href="#home">&#8249;</a>
+  <span class="logo">&#129517;</span>
+  <h1>BUSSOLA <span class="sub" id="subtitle">Controllo Commesse</span></h1>
+</header>
+<main id="app"></main>
+<nav class="bottom">
+  <a href="#home" data-nav="home"><span class="i">&#127968;</span>Home</a>
+  <a href="#dash" data-nav="dash"><span class="i">&#128202;</span>Dashboard</a>
+  <a href="#commesse" data-nav="commesse"><span class="i">&#127959;&#65039;</span>Commesse</a>
+  <a href="#dati" data-nav="dati"><span class="i">&#128260;</span>Dati</a>
+</nav>
+<footer>BUSSOLA mobile &middot; i dati restano su questo dispositivo</footer>
+
+<script>
+"use strict";
+/* ============================== stato & utils ============================== */
+const MESI = ["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
+const MESIF = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio",
+               "agosto","settembre","ottobre","novembre","dicembre"];
+const REVS = ["T1","T2","T3","T4"];
+const CATS = {F:"Forecast", CD:"Costi diretti", CI:"Costi Indiretti"};
+let D = null;                       // dati caricati
+let rev = localStorage.getItem("b_rev") || "T2";
+let catSel = "F";
+let filtroDT = "";
+
+const eur = v => (v==null||isNaN(v)) ? "–" :
+  Math.round(v).toLocaleString("it-IT");
+const eurK = v => {
+  if (v==null||isNaN(v)) return "–";
+  const a = Math.abs(v);
+  if (a >= 1e6) return (v/1e6).toLocaleString("it-IT",{maximumFractionDigits:2})+" M";
+  if (a >= 1e3) return Math.round(v/1e3).toLocaleString("it-IT")+" k";
+  return Math.round(v).toLocaleString("it-IT");
+};
+const pct = v => (v==null||!isFinite(v)) ? "–" :
+  (v*100).toLocaleString("it-IT",{maximumFractionDigits:1})+"%";
+const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const S = a => (a||[]).reduce((x,y)=>x+(y||0),0);          // somma con null
+function slice(a, m1, m2){ return (a||[]).slice(m1-1, m2); }
+
+function mesiCons(){ if(!D) return 0;
+  let k=0; for(let m=1;m<=12;m++) if((D.mesi_stato[m]||"")==="Consuntivato") k=m; return k; }
+function meseLavoro(){ if(!D) return 0;
+  let k=0; for(let m=1;m<=12;m++){const s=D.mesi_stato[m]||"";
+    if(s==="Provvisorio"||s==="Parziale al 15") k=m;}
+  if(k) return k;
+  for(let m=1;m<=12;m++) if((D.mesi_stato[m]||"")!=="Consuntivato") return m;
+  return 12; }
+function bud(c, r, cat){ return ((c.bud||{})[r]||{})[cat] || Array(12).fill(0); }
+function act(c, cat){ return (c.act||{})[cat] || Array(12).fill(null); }
+
+/* margine di commessa: actual/budget per mese */
+function margA(c,m){ const f=act(c,"Forecast")[m-1], cd=act(c,"Costi diretti")[m-1], ci=act(c,"Costi Indiretti")[m-1];
+  if(f==null&&cd==null&&ci==null) return null; return (f||0)-(cd||0)-(ci||0); }
+function margB(c,r,m){ return (bud(c,r,"Forecast")[m-1]||0)-(bud(c,r,"Costi diretti")[m-1]||0)-(bud(c,r,"Costi Indiretti")[m-1]||0); }
+
+/* ============================== dati ============================== */
+async function caricaAuto(){
+  const s = localStorage.getItem("b_dati");
+  if (s){ try{ D = JSON.parse(s); }catch(e){} }
+  // modalita' server (VM) o file affiancato: se esiste, ha la precedenza
+  try{
+    const r = await fetch("bussola_dati.json", {cache:"no-store"});
+    if (r.ok){ const j = await r.json();
+      if (j && j.commesse){ D = j; localStorage.setItem("b_dati", JSON.stringify(j)); } }
+  }catch(e){}
+  render();
+}
+function caricaFile(f){
+  const rd = new FileReader();
+  rd.onload = () => { try{
+      const j = JSON.parse(rd.result);
+      if (!j.commesse) throw new Error("formato non valido");
+      D = j; localStorage.setItem("b_dati", JSON.stringify(j));
+      location.hash = "#home"; render();
+    }catch(e){ alert("File non valido: " + e.message); } };
+  rd.readAsText(f);
+}
+function datiDemo(){
+  const nomi = [["101-001 - PONTE SUD","ROSSI","BIANCHI"],["102-002 - VIADOTTO EST","ROSSI","VERDI"],
+    ["103-003 - GALLERIA NORD","FLERES","DI BELLA"],["104-004 - DIGA OVEST","PAGLINI","FRONCILLO"],
+    ["105-005 - PORTO NUOVO","PAVONE","NERI"],["106-006 - FERROVIA ALTA","FLERES","DI BELLA"],
+    ["107-007 - OSPEDALE CENTRO","PAVONE","GIALLI"],["108-008 - SCUOLA GRANDE","CAVALLARO","BLU"]];
+  const rnd = (a,b)=>a+Math.random()*(b-a);
+  const stato = {}; for(let m=1;m<=12;m++) stato[m] = m<=6?"Consuntivato":(m===7?"Provvisorio":"Aperto");
+  D = { generato:new Date().toISOString(), esercizio:2026, demo:true, mesi_stato:stato,
+    commesse: nomi.map(([n,dt,pm],i)=>{
+      const base = rnd(2,9)*1e5;
+      const mk = (fmarg)=>{ const b={},a={};
+        REVS.forEach(r=>{ b[r]={Forecast:[],["Costi diretti"]:[],["Costi Indiretti"]:[]};
+          for(let m=0;m<12;m++){ const f=base*rnd(.7,1.3);
+            b[r].Forecast.push(f); b[r]["Costi diretti"].push(f*rnd(.62,.8)); b[r]["Costi Indiretti"].push(f*rnd(.1,.2)); }});
+        a.Forecast=[];a["Costi diretti"]=[];a["Costi Indiretti"]=[];
+        for(let m=0;m<12;m++){ if(m<7){ const f=b.T2.Forecast[m]*rnd(.8,1.15);
+            a.Forecast.push(f); a["Costi diretti"].push(f*rnd(.6,fmarg)); a["Costi Indiretti"].push(f*rnd(.1,.22)); }
+          else { a.Forecast.push(null); a["Costi diretti"].push(null); a["Costi Indiretti"].push(null);} }
+        return [b,a]; };
+      const [b,a] = mk(i===3?1.05:.85);
+      return { c:n, cod:n.split(" - ")[0], dt, pm, bud:b, act:a,
+        parz: Array(12).fill(null),
+        preg: {contratto: base*rnd(30,60), ricavi: base*rnd(6,14), cd: base*rnd(5,11), ci: base*rnd(1,2), salbis:0, extra:0} };
+    })};
+  localStorage.setItem("b_dati", JSON.stringify(D));
+  location.hash = "#home"; render();
+}
+
+/* ============================== componenti ============================== */
+function chipsRev(){
+  return '<div class="chips">' + REVS.map(r =>
+    `<button class="chip ${r===rev?'on':''}" onclick="rev='${r}';localStorage.setItem('b_rev',rev);render()">${r}</button>`).join("") + "</div>";
+}
+function stripMesi(){
+  let h = '<div class="mstrip">';
+  for(let m=1;m<=12;m++){ const s=(D.mesi_stato[m]||"");
+    const cl = s==="Consuntivato"?"cons":(s==="Provvisorio"?"prov":(s==="Parziale al 15"?"parz":""));
+    h += `<i class="${cl}" title="${MESI[m-1]}"></i>`; }
+  h += '</div><div class="legend"><span><i style="background:#79b98a"></i>consuntivato</span>' +
+       '<span><i style="background:#e9cf6b"></i>provvisorio</span>' +
+       '<span><i style="background:#e5a45c"></i>parziale 15</span>' +
+       '<span><i style="background:#e8ecf3"></i>aperto</span></div>';
+  return h;
+}
+function barChart(serieB, serieA, mMax){
+  const mx = Math.max(...serieB.filter(v=>v!=null), ...serieA.filter(v=>v!=null), 1);
+  let g = '<div class="bars">';
+  for(let m=0;m<12;m++){
+    const hb = Math.round((serieB[m]||0)/mx*100), ha = serieA[m]==null?0:Math.round(Math.abs(serieA[m])/mx*100);
+    const colA = (serieA[m]||0) < 0 ? "var(--ko)" : "var(--navy)";
+    g += `<div class="bgroup"><div class="bar" style="height:${hb}%;background:#c9d4e6"></div>` +
+         (m < mMax ? `<div class="bar" style="height:${ha}%;background:${colA}"></div>` : `<div class="bar" style="height:0"></div>`) +
+         `</div>`;
+  }
+  g += '</div><div class="bx">' + MESI.map(x=>`<span>${x}</span>`).join("") + '</div>' +
+       `<div class="legend"><span><i style="background:#c9d4e6"></i>Budget ${rev}</span>` +
+       '<span><i style="background:var(--navy)"></i>Avanzamento</span></div>';
+  return g;
+}
+
+/* ============================== pagine ============================== */
+function pgHome(){
+  if(!D) return pgNoDati();
+  const k = mesiCons(), ml = meseLavoro();
+  const nc = D.commesse.length;
+  const gen = (D.generato||"").slice(0,16).replace("T"," ");
+  return `
+  <div class="card">
+    <h2>Benvenuto</h2>
+    <div class="muted">Esercizio <b>${D.esercizio}</b> &middot; ${nc} commesse &middot; dati del ${esc(gen)}${D.demo?' &middot; <b style="color:var(--warn)">DEMO</b>':''}</div>
+    ${stripMesi()}
+  </div>
+  <div class="tiles">
+    <a class="tile" href="#dash"><span class="ico">&#128202;</span><b>Dashboard</b><span>KPI e andamento mensile</span></a>
+    <a class="tile" href="#commesse"><span class="ico">&#127959;&#65039;</span><b>Commesse</b><span>avanzamento e confronti</span></a>
+    <a class="tile" href="#dati"><span class="ico">&#128260;</span><b>Aggiorna dati</b><span>carica il file da BUSSOLA</span></a>
+    <a class="tile" href="#info"><span class="ico">&#8505;&#65039;</span><b>Info</b><span>come funziona</span></a>
+  </div>
+  <div class="card" style="margin-top:12px">
+    <h3>Adesso</h3>
+    <div class="muted">Ultimo mese consuntivato: <b>${k?MESIF[k-1]:"nessuno"}</b> &middot;
+    mese di lavoro: <b>${MESIF[ml-1]}</b> (${esc(D.mesi_stato[ml]||"Aperto")})</div>
+  </div>`;
+}
+function pgNoDati(){
+  return `<div class="card"><h2>Nessun dato caricato</h2>
+  <p class="muted" style="margin-bottom:12px">Per iniziare carica il file dati generato da BUSSOLA
+  (pagina <b>Scarica dati app</b> o script di esportazione), oppure guarda l'app coi dati demo.</p>
+  <p><label class="btn">&#128194; Carica file dati<input type="file" accept=".json" style="display:none"
+     onchange="caricaFile(this.files[0])"></label>
+  &nbsp;<button class="btn ghost" onclick="datiDemo()">Prova con dati demo</button></p></div>`;
+}
+function pgDash(){
+  if(!D) return pgNoDati();
+  const k = mesiCons(), ml = meseLavoro();
+  // totali consuntivati (1..k)
+  let pB=0,pA=0,cB=0,cA=0, sb=0,ex=0,cct=0;
+  const mensB = Array(12).fill(0), mensA = Array(12).fill(null);
+  let inserite=0;
+  for(const c of D.commesse){
+    for(let m=1;m<=12;m++){
+      mensB[m-1] += bud(c,rev,"Forecast")[m-1]||0;
+      const av = act(c,"Forecast")[m-1];
+      if(av!=null) mensA[m-1] = (mensA[m-1]||0) + av;
+    }
+    pB += S(slice(bud(c,rev,"Forecast"),1,k));  pA += S(slice(act(c,"Forecast"),1,k));
+    cB += S(slice(bud(c,rev,"Costi diretti"),1,k)) + S(slice(bud(c,rev,"Costi Indiretti"),1,k));
+    cA += S(slice(act(c,"Costi diretti"),1,k)) + S(slice(act(c,"Costi Indiretti"),1,k));
+    sb += S(slice(act(c,"SAL BIS"),1,12)); ex += S(slice(act(c,"Ricavi extra contrattuali"),1,12));
+    cct += S(slice(act(c,"CCT"),1,12));
+    if(act(c,"Forecast")[ml-1]!=null) inserite++;
+  }
+  const mA=pA-cA, mB=pB-cB, mt=mA+sb+ex+cct;
+  const dProd=pB?(pA-pB)/pB:null, dMarg=mA-mB;
+  const prodML = D.commesse.reduce((t,c)=>t+(act(c,"Forecast")[ml-1]||0),0);
+  const budML = D.commesse.reduce((t,c)=>t+(bud(c,rev,"Forecast")[ml-1]||0),0);
+  const fatML = (D.mesi_stato[ml]==="Parziale al 15") ? .5 : 1;
+  // top scostamenti margine (cons.)
+  const scost = D.commesse.map(c=>{
+    let ma=0,mb=0; for(let m=1;m<=k;m++){ const x=margA(c,m); if(x!=null) ma+=x; mb+=margB(c,rev,m); }
+    return {c:c.c, d:ma-mb}; }).sort((a,b)=>a.d-b.d);
+  const flop = scost.slice(0,4), top = scost.slice(-4).reverse();
+  return `
+  ${chipsRev()}
+  <div class="kpis">
+    <div class="kpi"><div class="lab">Produzione consuntivata</div><div class="val">${eurK(pA)}</div>
+      <div class="det ${dProd>=0?'pos':'neg'}">${dProd==null?'':(dProd>=0?'+':'')+pct(dProd)} vs budget ${rev} (${eurK(pB)})</div></div>
+    <div class="kpi"><div class="lab">Margine core</div><div class="val">${eurK(mA)}</div>
+      <div class="det ${dMarg>=0?'pos':'neg'}">${pct(pA?mA/pA:null)} sui ricavi &middot; ${(dMarg>=0?'+':'')+eurK(dMarg)} vs ${rev}</div></div>
+    <div class="kpi"><div class="lab">Marginalit&agrave; totale</div><div class="val">${eurK(mt)}</div>
+      <div class="det muted">con SAL BIS ${eurK(sb)} &middot; extra ${eurK(ex)} &middot; CCT ${eurK(cct)}</div></div>
+    <div class="kpi"><div class="lab">${esc(MESIF[ml-1])} (${esc((D.mesi_stato[ml]||'aperto').toLowerCase())})</div>
+      <div class="val">${eurK(prodML)}</div>
+      <div class="det muted">${inserite}/${D.commesse.length} commesse &middot; atteso ${eurK(budML*fatML)}</div></div>
+  </div>
+  <div class="card" style="margin-top:12px"><h2>Produzione mensile</h2>
+    ${barChart(mensB, mensA, 12)}
+  </div>
+  <div class="card"><h2>Scostamenti margine (gen&ndash;${MESI[k-1]||''} vs ${rev})</h2>
+    ${[...flop,...top].map(x=>{
+      const w = Math.min(100, Math.abs(x.d)/Math.max(Math.abs(flop[0]?.d||1),Math.abs(top[0]?.d||1))*100);
+      return `<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:12px">
+        <span>${esc(x.c.length>34?x.c.slice(0,34)+'…':x.c)}</span>
+        <b class="${x.d<0?'neg':'pos'}">${(x.d>=0?'+':'')+eurK(x.d)}</b></div>
+        <div class="hbar"><i style="width:${w}%;background:${x.d<0?'var(--ko)':'var(--ok)'}"></i></div></div>`;
+    }).join("")}
+  </div>`;
+}
+function pgCommesse(){
+  if(!D) return pgNoDati();
+  const q = (document.getElementById("q")?.value || window._q || "").toLowerCase();
+  window._q = q;
+  const dts = [...new Set(D.commesse.map(c=>c.dt).filter(Boolean))].sort();
+  const k = mesiCons();
+  const lista = D.commesse
+    .filter(c => (!filtroDT || c.dt===filtroDT) && (!q || (c.c+" "+(c.pm||"")).toLowerCase().includes(q)))
+    .map((c) => {
+      const i = D.commesse.indexOf(c);
+      let pA=0, ma=0; for(let m=1;m<=k;m++){ pA+=act(c,"Forecast")[m-1]||0; const x=margA(c,m); if(x!=null) ma+=x; }
+      // ultimo mese con dati
+      let um=0; for(let m=1;m<=12;m++) if(act(c,"Forecast")[m-1]!=null) um=m;
+      const st = um ? (D.mesi_stato[um]||"") : "";
+      const bcl = st==="Consuntivato"?"b-cons":(st==="Provvisorio"?"b-prov":(st==="Parziale al 15"?"b-parz":"b-open"));
+      return `<a class="item" href="#c/${i}"><b>${esc(c.c)}</b>
+        <div class="row2"><span>${esc(c.dt||"")} &middot; ${esc(c.pm||"")}</span>
+        <span>${um?`<span class="badge ${bcl}">${MESI[um-1]}</span>`:'<span class="badge b-open">–</span>'}</span></div>
+        <div class="row2"><span>prod. cons. <b style="color:var(--navy)">${eurK(pA)}</b></span>
+        <span>margine <b class="${ma<0?'neg':'pos'}">${eurK(ma)}</b></span></div></a>`;
+    }).join("");
+  return `
+  <input class="search" id="q" placeholder="&#128269; cerca commessa o PM..." value="${esc(q)}"
+    oninput="window._q=this.value;renderLista()">
+  <div class="chips" id="chipsdt">${['',...dts].map(d=>
+    `<button class="chip ${d===filtroDT?'on':''}" onclick="filtroDT='${esc(d)}';render()">${d||'tutti'}</button>`).join("")}</div>
+  <div class="clist" id="lista">${lista || '<div class="muted" style="padding:20px;text-align:center">nessuna commessa trovata</div>'}</div>`;
+}
+function renderLista(){
+  const el = document.getElementById("lista");
+  if(el){ const tmp = document.createElement("div"); tmp.innerHTML = pgCommesse();
+    el.innerHTML = tmp.querySelector("#lista").innerHTML; }
+}
+function pgCommessa(i){
+  const c = D?.commesse[i]; if(!c) return pgNoDati();
+  const k = mesiCons();
+  let um=0; for(let m=1;m<=12;m++) if(act(c,"Forecast")[m-1]!=null) um=m;
+  const stUm = um ? (D.mesi_stato[um]||"Aperto") : "";
+  const pA = S(slice(act(c,"Forecast"),1,k));
+  const cA = S(slice(act(c,"Costi diretti"),1,k)) + S(slice(act(c,"Costi Indiretti"),1,k));
+  const pB = S(slice(bud(c,rev,"Forecast"),1,k));
+  const mA = pA - cA;
+  // ultimo periodo
+  const upF = um?act(c,"Forecast")[um-1]:null, upCD = um?act(c,"Costi diretti")[um-1]:null,
+        upCI = um?act(c,"Costi Indiretti")[um-1]:null;
+  // margine dell'ultimo periodo SOLO se ci sono anche i costi: col parziale
+  // (sola produzione) un "margine" pari alla produzione sarebbe fuorviante
+  const upM = (upCD==null&&upCI==null)?null:(upF||0)-(upCD||0)-(upCI||0);
+  // B+C stima anno: actual 1..k + budget k+1..12
+  const bc = (cat)=> S(slice(act(c,cat),1,k)) + S(slice(bud(c,rev,cat),k+1,12));
+  const bcP = bc("Forecast"), bcM = bc("Forecast")-bc("Costi diretti")-bc("Costi Indiretti");
+  const catA = act(c, CATS[catSel]==="Forecast"?"Forecast":CATS[catSel]);
+  const serie = catSel==="M" ? null : CATS[catSel];
+  const sB = Array(12).fill(0), sA = Array(12).fill(null);
+  for(let m=0;m<12;m++){
+    if(serie){ sB[m] = bud(c,rev,serie)[m]||0; sA[m] = act(c,serie)[m]; }
+    else { sB[m] = margB(c,rev,m+1); const x = margA(c,m+1); sA[m] = x; }
+  }
+  let righe = "";
+  for(let m=1;m<=12;m++){
+    const b = sB[m-1], a2 = sA[m-1];
+    const dl = (a2!=null && b) ? (a2-b)/b : null;
+    const stm = D.mesi_stato[m]||"";
+    const bcl = stm==="Consuntivato"?"b-cons":(stm==="Provvisorio"?"b-prov":(stm==="Parziale al 15"?"b-parz":"b-open"));
+    righe += `<tr><td><span class="badge ${bcl}" style="min-width:30px;text-align:center">${MESI[m-1]}</span></td>
+      <td>${b?eur(b):""}</td><td>${a2==null?"":eur(a2)}</td>
+      <td class="${dl==null?'':(dl<0 ^ (catSel==='CD'||catSel==='CI') ? 'neg':'pos')}">${dl==null?"":pct(dl)}</td></tr>`;
+  }
+  const totB = S(sB), totA = S(sA.filter(v=>v!=null));
+  return `
+  <div class="card">
+    <h2>${esc(c.c)}</h2>
+    <div class="muted">DT <b>${esc(c.dt||"–")}</b> &middot; PM <b>${esc(c.pm||"–")}</b>
+      ${c.preg?.contratto?` &middot; contratto <b>${eurK(c.preg.contratto)}</b>`:""}</div>
+    ${c.preg? `<div class="muted" style="margin-top:4px">Prog. al 31/12/25: ricavi ${eurK(c.preg.ricavi)} &middot; costi ${eurK((c.preg.cd||0)+(c.preg.ci||0))}</div>`:""}
+  </div>
+  <div class="grid2">
+    <div class="card statmini"><div class="lab">AVANZAMENTO CONSUNTIVATO (gen&ndash;${k?MESI[k-1]:'–'})</div>
+      <div class="val">${eurK(pA)}</div>
+      <div class="muted">costi ${eurK(cA)} &middot; margine <b class="${mA<0?'neg':'pos'}">${eurK(mA)}</b> (${pct(pA?mA/pA:null)})</div>
+      <div class="hbar"><i style="width:${pB?Math.min(100,pA/pB*100):0}%;background:var(--blue)"></i></div>
+      <div class="muted" style="margin-top:2px">${pct(pB?pA/pB:null)} del budget ${rev} di periodo</div></div>
+    <div class="card statmini"><div class="lab">ULTIMO PERIODO ${um?("· "+MESI[um-1].toUpperCase()):""}</div>
+      <div class="val">${eurK(upF)}</div>
+      <div class="muted">${um?`<span class="badge ${stUm==="Consuntivato"?"b-cons":(stUm==="Provvisorio"?"b-prov":"b-parz")}">${esc(stUm)}</span>`:"nessun dato"}
+      ${upM!=null?` margine <b class="${upM<0?'neg':'pos'}">${eurK(upM)}</b>`:""}</div>
+      <div class="muted" style="margin-top:6px">Stima anno (B+C): <b style="color:var(--navy)">${eurK(bcP)}</b>
+       &middot; margine <b class="${bcM<0?'neg':'pos'}">${eurK(bcM)}</b></div></div>
+  </div>
+  <div class="card">
+    <h2>Budget vs Avanzamento</h2>
+    ${chipsRev()}
+    <div class="chips">${[["F","Ricavi"],["CD","Costi dir."],["CI","Costi ind."],["M","Margine"]].map(([kk,l])=>
+      `<button class="chip ${kk===catSel?'on':''}" onclick="catSel='${kk}';render()">${l}</button>`).join("")}</div>
+    ${barChart(sB, sA, 12)}
+    <table class="t" style="margin-top:10px">
+      <thead><tr><th>Mese</th><th>Budget ${rev}</th><th>Avanz.</th><th>&Delta;%</th></tr></thead>
+      <tbody>${righe}
+      <tr class="tot"><td>TOTALE</td><td>${eur(totB)}</td><td>${eur(totA)}</td>
+        <td>${totB?pct((totA-totB)/totB):""}</td></tr></tbody>
+    </table>
+    <p class="muted" style="margin-top:8px">L'avanzamento comprende consuntivato, provvisorio e parziale
+    (vedi colore del mese). &Delta;% = (avanzamento &minus; budget) / budget.</p>
+  </div>`;
+}
+function pgDati(){
+  const gen = D ? (D.generato||"").slice(0,16).replace("T"," ") : null;
+  return `
+  <div class="card"><h2>Dati dell'app</h2>
+    ${D?`<div class="msg ok">Dati caricati: <b>${D.commesse.length}</b> commesse, esercizio ${D.esercizio}, generati il ${esc(gen)}${D.demo?" (DEMO)":""}.</div>`
+       :'<div class="msg warn">Nessun dato caricato.</div>'}
+    <p><label class="btn">&#128194; Carica file dati (.json)<input type="file" accept=".json" style="display:none"
+      onchange="caricaFile(this.files[0])"></label></p>
+    <p style="margin-top:10px"><button class="btn ghost small" onclick="datiDemo()">Dati demo</button>
+    &nbsp;<button class="btn ghost small" onclick="localStorage.removeItem('b_dati');D=null;render()">Cancella dati</button></p>
+  </div>
+  <div class="card"><h3>Come si aggiornano i dati</h3>
+    <p class="muted">1. Da BUSSOLA (PC) genera il file <b>bussola_dati.json</b> con lo script di
+    esportazione (o la pagina dedicata).<br>
+    2. Invia il file al telefono (mail, AirDrop, Drive...) e caricalo qui.<br>
+    3. Quando l'app girer&agrave; sul server aziendale i dati si aggiorneranno da soli
+    (l'app cerca <i>bussola_dati.json</i> accanto a s&eacute;).<br><br>
+    &#128274; I dati restano solo su questo dispositivo: l'app non li invia da nessuna parte.</p>
+  </div>`;
+}
+function pgInfo(){
+  return `<div class="card"><h2>&#129517; BUSSOLA mobile</h2>
+  <p class="muted">Versione tascabile del sistema di controllo commesse COSEDIL:
+  dashboard KPI, avanzamento consuntivato e dell'ultimo periodo, confronto fra le
+  revisioni di budget (T1&ndash;T4) e l'avanzamento (consuntivato, provvisorio o parziale al 15).</p>
+  <p class="muted" style="margin-top:8px">Suggerimento: dal browser usa <b>&laquo;Aggiungi alla schermata Home&raquo;</b>
+  per installarla come app.</p>
+  <p class="muted" style="margin-top:8px">I dati si caricano dalla pagina <b>Dati</b> e non lasciano il dispositivo.</p></div>`;
+}
+
+/* ============================== router ============================== */
+function render(){
+  const h = location.hash || "#home";
+  const app = document.getElementById("app");
+  const back = document.getElementById("btnback");
+  let nav = "home";
+  if (h.startsWith("#c/")){ app.innerHTML = pgCommessa(parseInt(h.slice(3),10)); nav="commesse"; back.style.display=""; back.href="#commesse"; }
+  else if (h === "#dash"){ app.innerHTML = pgDash(); nav="dash"; back.style.display="none"; }
+  else if (h === "#commesse"){ app.innerHTML = pgCommesse(); nav="commesse"; back.style.display="none"; }
+  else if (h === "#dati"){ app.innerHTML = pgDati(); nav="dati"; back.style.display="none"; }
+  else if (h === "#info"){ app.innerHTML = pgInfo(); nav="home"; back.style.display=""; back.href="#home"; }
+  else { app.innerHTML = pgHome(); back.style.display="none"; }
+  document.querySelectorAll("nav.bottom a").forEach(a =>
+    a.classList.toggle("on", a.dataset.nav === nav));
+  window.scrollTo(0,0);
+}
+window.addEventListener("hashchange", render);
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+caricaAuto();
+</script>
+</body>
+</html>
