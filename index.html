@@ -170,6 +170,7 @@ let filtroDT = "";
 let filtroPM = "";
 let ordina = localStorage.getItem("b_ord") || "nome";
 let soloMancanti = false;
+let noFerme = localStorage.getItem("b_noferme") === "1";
 
 const eur = v => (v==null||isNaN(v)) ? "–" :
   Math.round(v).toLocaleString("it-IT");
@@ -225,6 +226,13 @@ function extra(c){
 /* Il parziale al 15 si mostra solo quando aggiunge informazione: nei mesi
    ancora "Parziale al 15" l'avanzamento E' gia' quel valore. */
 function mostra15(p15, a){ return p15!=null && (a==null || Math.round(p15)!==Math.round(a)); }
+/* Commessa "ferma" nella revisione: budget a zero E nessun consuntivo (nuova o
+   dormiente). Chi produce senza budget NON e' ferma: e' un'anomalia da vedere,
+   non da nascondere - stessa regola della web app. Nel file dati le categorie
+   tutte a zero non vengono esportate, quindi "niente chiavi" = "tutto zero". */
+function ferma(c){
+  return !Object.keys((c.bud||{})[rev] || {}).length && !Object.keys(c.act || {}).length;
+}
 /* ---- totali annui di budget di una revisione ---- */
 function annoRev(c,r){
   const ric = S(bud(c,r,"Forecast")), co = S(bud(c,r,"Costi diretti")) + S(bud(c,r,"Costi Indiretti"));
@@ -741,7 +749,7 @@ function righeCommesse(){
              manca: act(c,"Forecast")[ml-1]==null };
   }).filter(r =>
       (!filtroDT || r.c.dt===filtroDT) && (!filtroPM || r.c.pm===filtroPM) &&
-      (!soloMancanti || r.manca) &&
+      (!soloMancanti || r.manca) && !(noFerme && ferma(r.c)) &&
       (!q || (r.c.c+" "+(r.c.pm||"")+" "+(r.c.dt||"")).toLowerCase().includes(q)));
   const cmp = { nome:(a,b)=>a.c.c.localeCompare(b.c.c,"it"),
     prod:(a,b)=>b.pA-a.pA, marg:(a,b)=>a.ma-b.ma, scost:(a,b)=>a.scost-b.scost,
@@ -772,6 +780,9 @@ function pgCommesse(){
     .map(c=>c.pm).filter(Boolean))].sort();
   const ml = meseLavoro();
   const righe = righeCommesse();
+  // quante ne sta togliendo il filtro, dentro i filtri DT/PM gia' attivi
+  const nFerme = D.commesse.filter(c =>
+    (!filtroDT || c.dt===filtroDT) && (!filtroPM || c.pm===filtroPM) && ferma(c)).length;
   return `
   <input class="search" id="q" placeholder="&#128269; cerca commessa, PM o DT..." value="${esc(q)}"
     oninput="window._q=this.value;renderLista()">
@@ -789,7 +800,12 @@ function pgCommesse(){
       onclick="setDT(this.dataset.v)">${esc(d)||'tutti i DT'}</button>`).join("")}</div>
   <div class="chips"><button class="chip ${soloMancanti?'on':''}"
     onclick="soloMancanti=!soloMancanti;render()">&#9888;&#65039; manca ${MESI[ml-1]}</button>
+    <button class="chip ${noFerme?'on':''}" title="Via le commesse con budget a zero e nessun consuntivo nella revisione scelta"
+      onclick="noFerme=!noFerme;localStorage.setItem('b_noferme',noFerme?'1':'0');render()">&#128683; senza le ferme</button>
     <span class="muted" id="conta" style="align-self:center">${righe.length} commesse</span></div>
+  ${noFerme?`<p class="muted" style="margin:-4px 0 10px;font-size:11px">Nascoste
+    <b>${nFerme}</b> commesse ferme (budget ${rev} a zero e nessun consuntivo).
+    Chi produce senza budget resta in elenco: &egrave; un'anomalia da vedere.</p>`:""}
   <div class="clist" id="lista">${htmlLista(righe)}</div>`;
 }
 function renderLista(){
