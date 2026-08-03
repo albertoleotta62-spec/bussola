@@ -80,6 +80,21 @@ table.t tr.tot td{font-weight:800;color:var(--navy);border-top:2px solid var(--n
 .sel{flex:1;min-width:0;padding:9px 8px;border:1.5px solid var(--line);border-radius:10px;
   font-size:12.5px;background:#fff;color:var(--ink);font-family:inherit}
 .row3{display:flex;justify-content:space-between;margin-top:3px;font-size:11.5px;color:var(--muted)}
+/* conto economico: tabella larga, scorre in orizzontale dentro la card */
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+table.ce{border-collapse:collapse;font-size:11.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
+table.ce th{background:var(--navy);color:#fff;font-size:10px;font-weight:600;padding:5px 7px;text-align:right}
+table.ce th.q{background:var(--blue)}
+table.ce th.voce,table.ce td:first-child{text-align:left;position:sticky;left:0;z-index:2}
+table.ce th.voce{background:var(--navy)}
+table.ce td:first-child{background:var(--card);white-space:normal;min-width:112px;
+  font-size:11px;color:var(--ink);box-shadow:1px 0 0 var(--line)}
+table.ce td{padding:5px 7px;text-align:right;border-bottom:1px solid var(--line)}
+table.ce td.pc{color:var(--muted);font-size:10px}
+table.ce td.b{font-weight:800;color:var(--navy)}
+table.ce td.vuoto{color:#b6bcc7}
+table.ce tr.forte td{background:#eef3fb;font-weight:700}
+table.ce tr.forte td:first-child{background:#eef3fb;color:var(--navy)}
 table.t tr.sel td{background:#eef3fb}
 table.t td.rev{text-align:left;color:var(--navy);font-weight:700}
 nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;display:flex;z-index:30;
@@ -134,6 +149,7 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
 <nav class="bottom">
   <a href="#home" data-nav="home"><span class="i">&#127968;</span>Home</a>
   <a href="#dash" data-nav="dash"><span class="i">&#128202;</span>Dashboard</a>
+  <a href="#ce" data-nav="ce"><span class="i">&#129534;</span>Conto ec.</a>
   <a href="#commesse" data-nav="commesse"><span class="i">&#127959;&#65039;</span>Commesse</a>
   <a href="#dati" data-nav="dati"><span class="i">&#128260;</span>Dati</a>
 </nav>
@@ -470,6 +486,121 @@ function cardExtra(c, pA, mA){
       complessivi. Sono voci a solo consuntivo: non hanno budget se non inserito a mano.</p>
   </div>`;
 }
+/* ================= conto economico di sintesi (schema Project Control) =======
+   Stessa tabella della web app: righe fisse, una coppia di colonne (M€ e % sul
+   Totale Valore della Produzione) per ogni periodo. Un trimestre compare solo
+   quando ha l'actual di tutti e tre i mesi. */
+const CE_RIGHE = [
+  ["vdp",      "Valore della Produzione",        0],
+  ["extra",    "Produzione Sal bis + CCT",       0],
+  ["tot_vdp",  "Totale Valore della Produzione", 1],
+  ["cd",       "Costi diretti",                  0],
+  ["ci",       "Costi indiretti",                0],
+  ["mol",      "Margine Operativo Lordo",        1],
+  ["mrg_contr","Margine contrattuale",           0],
+  ["tot_mrg",  "Totale Margine",                 1],
+  ["sg",       "Spese generali",                 0],
+  ["ebitda",   "Ebitda",                         1],
+];
+const CE_EXTRA = ["SAL BIS", "Ricavi extra contrattuali", "CCT"];
+function mesiChiusi(){ const s=new Set();
+  for(let m=1;m<=12;m++) if((D.mesi_stato[m]||"Aperto")!=="Aperto") s.add(m); return s; }
+function revDiMese(m){ const rpm = D.rev_primo_mese || {T1:1,T2:4,T3:7,T4:10};
+  let r = REVS[0]; for(const k of REVS) if((rpm[k]||1) <= m) r = k; return r; }
+function ceColonne(){
+  const chiusi = mesiChiusi();
+  const cols = [{k:"s25", lab:"Cons. "+(D.esercizio-1), f:"S", mesi:[]},
+                {k:"banno", lab:"Budget "+D.esercizio, f:"B", rev:REVS[0], mesi:[...Array(12)].map((_,i)=>i+1)}];
+  for(let q=1;q<=4;q++){
+    if(!chiusi.has(3*q)) break;
+    const mesi = [...Array(3*q)].map((_,i)=>i+1);
+    cols.push({k:"bq"+q, lab:"Budget Q"+q, f:"B", rev:REVS[q-1], mesi});
+    cols.push({k:"cq"+q, lab:"Cons. Q"+q, f:"A", mesi, forte:1});
+  }
+  cols.push({k:"fcst", lab:"Forecast "+D.esercizio, f:"F", mesi:[...Array(12)].map((_,i)=>i+1), forte:1});
+  return cols;
+}
+/* conSg: le spese generali sono un costo dell'AZIENDA. Vanno solo sul totale;
+   con un filtro attivo ripartirle sul sottoinsieme sarebbe inventare un
+   criterio (stessa regola della web app). */
+function ceMatrice(sel, conSg){
+  const chiusi = mesiChiusi();
+  const val = (cat, col) => { let t=0;
+    for(const c of sel) for(const m of col.mesi){
+      if(col.f==="A" || (col.f==="F" && chiusi.has(m))) t += act(c,cat)[m-1]||0;
+      else t += bud(c, col.rev || revDiMese(m), cat)[m-1]||0;
+    } return t; };
+  const sgMese = (D.spese_generali||0)/12;
+  const out = {};
+  for(const col of ceColonne()){
+    let r;
+    if(col.f==="S"){
+      const s = k => sel.reduce((t,c)=>t+((c.stor25||{})[k]||0), 0);
+      const v = s("ricavi"), cd = s("cd"), ci = s("ci");
+      // il 2025 nel sistema ha solo ricavi/CD/CI: le righe che dipendono da
+      // Sal bis e CCT restano ignote, non a zero
+      r = {vdp:v, extra:null, tot_vdp:null, cd:-cd, ci:-ci, mol:v-cd-ci,
+           mrg_contr:null, tot_mrg:null, sg:null, ebitda:null};
+    } else {
+      const vdp = val("Forecast",col), ex = S(CE_EXTRA.map(k=>val(k,col)));
+      const cd = val("Costi diretti",col), ci = val("Costi Indiretti",col);
+      const mol = vdp-cd-ci;
+      r = {vdp, extra:ex, tot_vdp:vdp+ex, cd:-cd, ci:-ci, mol,
+           mrg_contr:ex, tot_mrg:mol+ex, sg:null, ebitda:null};
+      if(conSg){ const sg = sgMese*col.mesi.length;
+        r.sg = -sg; r.ebitda = r.tot_mrg - sg; }
+    }
+    out[col.k] = r;
+  }
+  return out;
+}
+const me = v => (v==null||isNaN(v)) ? null :
+  (Math.abs(v)<50 ? "0,0" : (v/1e6).toLocaleString("it-IT",{minimumFractionDigits:1,maximumFractionDigits:1}));
+function pgCE(){
+  if(!D) return pgNoDati();
+  const sel = D.commesse.filter(c => (!filtroDT || c.dt===filtroDT) && (!filtroPM || c.pm===filtroPM));
+  const conSg = !!D.spese_generali && !filtroDT && !filtroPM;
+  const cols = ceColonne(), mat = ceMatrice(sel, conSg);
+  const dts = [...new Set(D.commesse.map(c=>c.dt).filter(Boolean))].sort();
+  const h1 = cols.map(c=>`<th colspan="2" class="${c.forte?'q':''}">${esc(c.lab)}</th>`).join("");
+  const h2 = cols.map(()=>'<th>M&euro;</th><th>%</th>').join("");
+  const righe = CE_RIGHE.map(([k,lab,forte])=>{
+    const vuota = cols.every(c => mat[c.k][k]==null);
+    const celle = cols.map(c=>{
+      const v = mat[c.k][k];
+      if(v==null) return '<td class="vuoto">&mdash;</td><td class="vuoto">&mdash;</td>';
+      const base = mat[c.k].tot_vdp;
+      return `<td${forte?' class="b"':''}>${me(v)}</td><td class="pc">${base?pct(v/base):"&mdash;"}</td>`;
+    }).join("");
+    return `<tr class="${forte&&!vuota?'forte':''}"><td class="${vuota?'vuoto':(forte?'b':'')}">${lab}</td>${celle}</tr>`;
+  }).join("");
+  const q = cols.filter(c=>c.f==="A").map(c=>c.lab);
+  return `
+  <div class="card"><h2>Conto economico di sintesi</h2>
+    <div class="muted">${filtroDT||filtroPM ? `Filtro: <b>${esc(filtroDT||"")} ${esc(filtroPM||"")}</b> &middot; ${sel.length} commesse`
+      : `Tutte le commesse (${sel.length})`} &middot; valori in <b>milioni</b>,
+      percentuali sul Totale Valore della Produzione.</div>
+    <div class="chips" style="margin-top:8px">${['',...dts].map(d=>
+      `<button class="chip ${d===filtroDT?'on':''}" data-v="${esc(d)}"
+        onclick="filtroPM='';setDT(this.dataset.v)">${esc(d)||'tutti i DT'}</button>`).join("")}</div>
+  </div>
+  <div class="card">
+    <div class="scroll"><table class="ce">
+      <thead><tr><th class="voce">Voce</th>${h1}</tr><tr><th class="voce"></th>${h2}</tr></thead>
+      <tbody>${righe}</tbody>
+    </table></div>
+    <p class="muted" style="margin-top:8px;font-size:11px">Trimestri disponibili:
+      <b>${q.join(", ")||"nessuno"}</b> (un trimestre compare quando ha l'actual di
+      tutti e tre i mesi). <b>Budget Qn</b> = revisione in vigore in quel trimestre,
+      cumulata da gennaio. <b>Forecast</b> = actual sui mesi chiusi + budget sui mesi aperti.
+      ${conSg
+        ? `<b>Spese generali</b>: ${eur(D.spese_generali)} annui ripartiti sui mesi della colonna.`
+        : (D.spese_generali ? "<b>Spese generali</b> ed <b>Ebitda</b> restano vuote col filtro attivo: sono costi dell'azienda, non di commessa."
+                            : "<b>Spese generali</b> assenti in questo file dati.")}
+      Un trimestre che finisce con un mese provvisorio ha i ricavi reali ma i costi stimati.</p>
+  </div>`;
+}
+
 /* ---- C. come e' cambiato il budget da T1 a T4 ---- */
 function cardRevisioni(c){
   const rs = REVS.filter(r => (c.bud||{})[r]);
@@ -510,6 +641,7 @@ function pgHome(){
   <div class="tiles">
     <a class="tile" href="#dash"><span class="ico">&#128202;</span><b>Dashboard</b><span>KPI e andamento mensile</span></a>
     <a class="tile" href="#commesse"><span class="ico">&#127959;&#65039;</span><b>Commesse</b><span>avanzamento e confronti</span></a>
+    <a class="tile" href="#ce"><span class="ico">&#129534;</span><b>Conto economico</b><span>sintesi Project Control</span></a>
     <a class="tile" href="#dati"><span class="ico">&#128260;</span><b>Aggiorna dati</b><span>carica il file da BUSSOLA</span></a>
     <a class="tile" href="#info"><span class="ico">&#8505;&#65039;</span><b>Info</b><span>come funziona</span></a>
   </div>
@@ -818,6 +950,7 @@ function render(){
   let nav = "home";
   if (h.startsWith("#c/")){ app.innerHTML = pgCommessa(parseInt(h.slice(3),10)); nav="commesse"; back.style.display=""; back.href="#commesse"; }
   else if (h === "#dash"){ app.innerHTML = pgDash(); nav="dash"; back.style.display="none"; }
+  else if (h === "#ce"){ app.innerHTML = pgCE(); nav="ce"; back.style.display="none"; }
   else if (h === "#commesse"){ app.innerHTML = pgCommesse(); nav="commesse"; back.style.display="none"; }
   else if (h === "#dati"){ app.innerHTML = pgDati(); nav="dati"; back.style.display="none"; }
   else if (h === "#info"){ app.innerHTML = pgInfo(); nav="home"; back.style.display=""; back.href="#home"; }
