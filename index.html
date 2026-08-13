@@ -23,7 +23,7 @@ header.top{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#1
   color:#fff;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;display:flex;align-items:center;gap:10px;
   box-shadow:0 2px 10px rgba(15,25,50,.25)}
 header.top .logo{font-size:22px}
-header.top h1{font-size:17px;font-weight:700;letter-spacing:.4px;flex:1}
+header.top h1{font-size:17px;font-weight:700;letter-spacing:.4px;flex:1;min-width:0;white-space:nowrap}
 header.top .sub{font-size:11px;opacity:.8}
 main{padding:14px;max-width:760px;margin:0 auto}
 .card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;
@@ -38,10 +38,10 @@ main{padding:14px;max-width:760px;margin:0 auto}
 .tile b{display:block;margin-top:8px;color:var(--navy);font-size:14px}
 .tile span{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.kpi{background:var(--card);border-radius:14px;padding:12px;box-shadow:0 1px 4px rgba(20,35,70,.08)}
+.kpi{background:var(--card);border-radius:14px;padding:12px;box-shadow:0 1px 4px rgba(20,35,70,.08);min-width:0;overflow:hidden}
 .kpi .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
 .kpi .val{font-size:20px;font-weight:800;color:var(--navy);margin-top:3px;font-variant-numeric:tabular-nums}
-.kpi .det{font-size:11.5px;margin-top:3px}
+.kpi .det{font-size:11.5px;margin-top:3px;overflow-wrap:anywhere}
 .pos{color:var(--ok)} .neg{color:var(--ko)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
 .chip{border:1.5px solid var(--line);background:#fff;border-radius:20px;padding:6px 14px;
@@ -117,6 +117,11 @@ nav.bottom a.on{color:var(--navy);font-weight:700}
 .mstrip i{flex:1;height:8px;border-radius:3px;background:#e8ecf3}
 .mstrip i.cons{background:#79b98a}.mstrip i.prov{background:#e9cf6b}.mstrip i.parz{background:#e5a45c}
 footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--muted)}
+@media(max-width:430px){
+  header.top .sub{display:none} main{padding:12px}.kpis{gap:8px}.kpi{padding:11px 10px}
+  .kpi .val{font-size:19px}.tiles{gap:9px}.tile{padding:15px 10px}
+}
+@media(max-width:340px){.kpis,.grid2{grid-template-columns:1fr}}
 /* ---- schermata di accesso: stessa veste del login BUSSOLA su PC ---- */
 .lockwrap{margin:-14px;background:#fff;min-height:100vh}
 .lockpan{background:linear-gradient(160deg,#1F3864 0%,#16294a 100%);color:#fff;
@@ -153,7 +158,7 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
   <a href="#commesse" data-nav="commesse"><span class="i">&#127959;&#65039;</span>Commesse</a>
   <a href="#dati" data-nav="dati"><span class="i">&#128260;</span>Dati</a>
 </nav>
-<footer>Cosedil SpA BUSSOLA &middot; i dati restano su questo dispositivo</footer>
+<footer>Cosedil SpA BUSSOLA &middot; accesso riservato</footer>
 
 <script>
 "use strict";
@@ -165,12 +170,37 @@ const REVS = ["T1","T2","T3","T4"];
 const CATS = {F:"Forecast", CD:"Costi diretti", CI:"Costi Indiretti"};
 let D = null;                       // dati caricati
 let rev = localStorage.getItem("b_rev") || "T2";
+if(!REVS.includes(rev)){ rev="T2"; localStorage.setItem("b_rev",rev); }
 let catSel = "F";
 let filtroDT = "";
 let filtroPM = "";
 let ordina = localStorage.getItem("b_ord") || "nome";
 let soloMancanti = false;
 let noFerme = localStorage.getItem("b_noferme") === "1";
+/* La modalita' server dipende esclusivamente dall'indirizzo corrente. I dati
+   riservati restano in memoria per questa sessione e non in localStorage, per
+   evitare che un altro utente del telefono possa vedere il perimetro precedente. */
+const APP_SERVER = location.pathname.startsWith("/app/");
+let daServer = APP_SERVER;
+let versioneDati = "";
+let sync = {online:false, errore:"", ultimo:""};
+/* Fuori dalla VPN i dati arrivano dal file che BUSSOLA pubblica nella cartella
+   aziendale sincronizzata: serve il link in forma "download diretto"
+   (.../_layouts/15/download.aspx?share=...), l'unica che il browser autorizza a
+   leggere da un altro indirizzo. Qui resta vuoto di proposito: il guscio sta in
+   un repository pubblico e l'indirizzo vale come una chiave, quindi lo si
+   configura sul telefono (una volta sola) invece di scriverlo nel codice. */
+const DATI_URL_DEFAULT = "";
+let datiUrl = localStorage.getItem("b_url") || DATI_URL_DEFAULT;
+/* Un indirizzo del tipo ...?dati=<link> configura la app al primo avvio: si
+   distribuisce una volta ai DT e non devono incollare nulla. */
+(function(){
+  const q = new URLSearchParams(location.search).get("dati");
+  if(q && /^https:\/\//i.test(q)){
+    datiUrl = q; localStorage.setItem("b_url", q);
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
+})();
 
 const eur = v => (v==null||isNaN(v)) ? "–" :
   Math.round(v).toLocaleString("it-IT");
@@ -355,16 +385,94 @@ function pgLock(){
 }
 
 /* ============================== dati ============================== */
-async function caricaAuto(){
-  const s = localStorage.getItem("b_dati");
-  if (s){ try{ D = JSON.parse(s); }catch(e){} }
-  // modalita' server (VM) o file affiancato: se esiste, ha la precedenza
+async function aggiornaServer(silenzioso=false){
   try{
-    const r = await fetch("bussola_dati.json", {cache:"no-store"});
-    if (r.ok){ const j = await r.json();
-      if (j && j.commesse){ D = j; localStorage.setItem("b_dati", JSON.stringify(j)); } }
-  }catch(e){}
+    const r = await fetch("bussola_dati.json", {cache:"no-store",credentials:"same-origin"});
+    const ct = r.headers.get("content-type") || "";
+    if(r.redirected || !r.ok || !ct.includes("application/json")){
+      D=null; sync={online:false,errore:"Sessione scaduta",ultimo:sync.ultimo};
+      render(); location.href="../login"; return false;
+    }
+    const j = await r.json();
+    if(!j || !Array.isArray(j.commesse)) throw new Error("Risposta dati non valida");
+    D=j; versioneDati=String(j.versione||"");
+    sync={online:true,errore:"",ultimo:new Date().toLocaleString("it-IT")};
+    // Rimuove i dati sensibili eventualmente lasciati da versioni precedenti.
+    localStorage.removeItem("b_dati"); localStorage.removeItem("b_server");
+    if(!silenzioso) render();
+    return true;
+  }catch(e){
+    sync={online:false,errore:e.message||"Server non raggiungibile",ultimo:sync.ultimo};
+    if(!silenzioso || !D) render();
+    return false;
+  }
+}
+async function controllaVersione(){
+  if(!daServer || document.hidden) return;
+  try{
+    const r=await fetch("stato-dati.json",{cache:"no-store",credentials:"same-origin"});
+    const ct=r.headers.get("content-type")||"";
+    if(r.redirected || !r.ok || !ct.includes("application/json")){
+      D=null; render(); location.href="../login"; return;
+    }
+    const s=await r.json(), v=String(s.versione||"");
+    if(v && v!==versioneDati){ await aggiornaServer(true); render(); }
+    else sync.online=true;
+  }catch(e){ sync.online=false; sync.errore=e.message||"Server non raggiungibile"; }
+}
+/* Lettura del file pubblicato da BUSSOLA nella cartella aziendale. La copia
+   scaricata resta sul telefono, cosi' la app funziona anche senza rete e non
+   riparte mai da una schermata vuota. */
+async function aggiornaDaUrl(silenzioso=false){
+  if(!datiUrl) return false;
+  try{
+    const r = await fetch(datiUrl, {cache:"no-store"});
+    if(!r.ok) throw new Error("il server ha risposto " + r.status);
+    const j = await r.json();
+    if(!j || !Array.isArray(j.commesse)) throw new Error("il file non contiene le commesse");
+    D = j; versioneDati = String(j.versione||"");
+    try{ localStorage.setItem("b_dati", JSON.stringify(j)); }catch(e){}
+    localStorage.setItem("b_sync", new Date().toLocaleString("it-IT"));
+    sync = {online:true, errore:"", ultimo:localStorage.getItem("b_sync")};
+    if(!silenzioso) render();
+    return true;
+  }catch(e){
+    // "Failed to fetch" non dice niente all'utente: le cause vere sono queste due.
+    const msg = (e instanceof TypeError)
+      ? "indirizzo non raggiungibile: manca la rete oppure il link e' scaduto"
+      : (e.message || "errore imprevisto");
+    sync = {online:false, errore:msg, ultimo:localStorage.getItem("b_sync")||""};
+    if(!silenzioso) render();
+    return false;
+  }
+}
+async function caricaAuto(){
+  if(daServer){ await aggiornaServer(false); return; }
+  const s = localStorage.getItem("b_dati");
+  if(s){ try{ D=JSON.parse(s); }catch(e){ localStorage.removeItem("b_dati"); } }
+  sync.ultimo = localStorage.getItem("b_sync") || "";
+  // Prima si mostra la copia gia' scaricata, poi si va a vedere se e' cambiata:
+  // l'app e' subito utilizzabile anche con la rete lenta.
+  if(datiUrl){ if(D) render(); await aggiornaDaUrl(false); return; }
   render();
+}
+function impostaUrl(){
+  const p = prompt("Incolla l'indirizzo del file dati BUSSOLA:", datiUrl || "");
+  if(p === null) return;
+  const u = p.trim();
+  if(!u) return;
+  if(!/^https:\/\//i.test(u)){ alert("L'indirizzo deve iniziare per https://"); return; }
+  datiUrl = u; localStorage.setItem("b_url", u);
+  aggiornaDaUrl();
+}
+function togliUrl(){
+  if(!confirm("Disattivare l'aggiornamento automatico? I dati gia' scaricati restano sul telefono.")) return;
+  datiUrl = ""; localStorage.removeItem("b_url"); render();
+}
+function esciServer(){
+  D=null; versioneDati="";
+  localStorage.removeItem("b_dati"); localStorage.removeItem("b_server");
+  location.href="../logout";
 }
 function caricaFile(f){
   const rd = new FileReader();
@@ -660,6 +768,11 @@ function pgHome(){
   </div>`;
 }
 function pgNoDati(){
+  if(daServer) return `<div class="card"><h2>Dati non disponibili</h2>
+  <div class="msg warn">${sync.errore?esc(sync.errore):"Il server BUSSOLA non ha risposto."}</div>
+  <p class="muted">Controlla la connessione e riprova. Nessun dato di un accesso precedente
+  viene conservato sul dispositivo.</p>
+  <p style="margin-top:12px"><button class="btn" onclick="aggiornaServer()">&#128260; Riprova</button></p></div>`;
   return `<div class="card"><h2>Nessun dato caricato</h2>
   <p class="muted" style="margin-bottom:12px">Per iniziare carica il file dati generato da BUSSOLA
   (pagina <b>Scarica dati app</b> o script di esportazione), oppure guarda l'app coi dati demo.</p>
@@ -900,14 +1013,47 @@ function pgCommessa(i){
 }
 function pgDati(){
   const gen = D ? (D.generato||"").slice(0,16).replace("T"," ") : null;
+  if(daServer) return `
+  <div class="card"><h2>Dati dell'app</h2>
+    ${D?`<div class="msg ${sync.online?'ok':'warn'}">Dati dal server BUSSOLA: <b>${D.commesse.length}</b> commesse,
+      esercizio ${D.esercizio}, generati il ${esc(gen)}.${sync.online?'':' Connessione momentaneamente assente.'}</div>`
+      :'<div class="msg warn">Il server non ha risposto: sei fuori dalla rete aziendale?</div>'}
+    <p class="muted">Qui non c'&egrave; niente da caricare a mano: i dati arrivano dal server
+    all'apertura e vengono ricontrollati automaticamente mentre usi l'app.
+    ${sync.ultimo?`Ultima sincronizzazione: <b>${esc(sync.ultimo)}</b>.`:''}</p>
+    <p style="margin-top:10px"><button class="btn" onclick="aggiornaServer()">&#128260; Aggiorna adesso</button></p>
+  </div>
+  <div class="card"><h3>Accesso</h3>
+    <p class="muted">Sei entrato con il tuo utente <b>BUSSOLA</b>, lo stesso del computer: vedi
+    le commesse del tuo ruolo. Il PIN dell'app qui non serve, ci pensa il server.</p>
+    <p style="margin-top:10px"><button class="btn ghost small" onclick="esciServer()">Esci</button></p>
+  </div>
+  <div class="card"><h3>Sicurezza</h3>
+    <p class="muted">L'accesso esterno &egrave; protetto e ogni utente riceve soltanto le commesse
+    previste dal proprio ruolo. I dati non vengono salvati in modo permanente sul telefono.</p>
+  </div>`;
   return `
   <div class="card"><h2>Dati dell'app</h2>
     ${D?`<div class="msg ok">Dati caricati: <b>${D.commesse.length}</b> commesse, esercizio ${D.esercizio}, generati il ${esc(gen)}${D.demo?" (DEMO)":""}.</div>`
        :'<div class="msg warn">Nessun dato caricato.</div>'}
-    <p><label class="btn">&#128194; Carica file dati (.json)<input type="file" accept=".json" style="display:none"
-      onchange="caricaFile(this.files[0])"></label></p>
+    ${datiUrl?`
+      <p class="muted">Aggiornamento automatico <b>attivo</b>: i dati arrivano dalla cartella
+      aziendale, dove BUSSOLA li rigenera a ogni salvataggio. Non c'&egrave; niente da caricare a mano.
+      ${sync.ultimo?`Ultimo aggiornamento: <b>${esc(sync.ultimo)}</b>.`:""}</p>
+      ${sync.errore?`<div class="msg warn">Ultimo tentativo non riuscito: ${esc(sync.errore)}.
+        I dati mostrati sono quelli scaricati in precedenza.</div>`:""}
+      <p style="margin-top:10px"><button class="btn" onclick="aggiornaDaUrl()">&#128260; Aggiorna adesso</button></p>
+      <p style="margin-top:10px"><button class="btn ghost small" onclick="impostaUrl()">Cambia indirizzo</button>
+      &nbsp;<button class="btn ghost small" onclick="togliUrl()">Disattiva</button></p>
+    `:`
+      <p class="muted">Configura l'indirizzo del file dati <b>una volta sola</b>: da quel momento
+      l'app si aggiorna da s&eacute; a ogni avvio, senza pi&ugrave; passaggi manuali.</p>
+      <p style="margin-top:10px"><button class="btn" onclick="impostaUrl()">Attiva aggiornamento automatico</button></p>
+      <p style="margin-top:10px"><label class="btn ghost small">&#128194; Carica file dati (.json)<input type="file" accept=".json" style="display:none"
+        onchange="caricaFile(this.files[0])"></label></p>
+    `}
     <p style="margin-top:10px"><button class="btn ghost small" onclick="datiDemo()">Dati demo</button>
-    &nbsp;<button class="btn ghost small" onclick="localStorage.removeItem('b_dati');D=null;render()">Cancella dati</button></p>
+    &nbsp;<button class="btn ghost small" onclick="localStorage.removeItem('b_dati');localStorage.removeItem('b_sync');D=null;sync={online:false,errore:'',ultimo:''};render()">Cancella dati</button></p>
   </div>
   <div class="card"><h3>Sicurezza</h3>
     <p class="muted" style="margin-bottom:10px">PIN attivo su questo dispositivo
@@ -917,12 +1063,15 @@ function pgDati(){
     ${bioSupportato()?`&nbsp;<button class="btn ghost small" onclick="bioToggle()">${bioAttivo()?"Disattiva":"Attiva"} Face ID</button>`:""}</p>
   </div>
   <div class="card"><h3>Come si aggiornano i dati</h3>
-    <p class="muted">1. Da BUSSOLA (PC) genera il file <b>bussola_dati.json</b> con lo script di
-    esportazione (o la pagina dedicata).<br>
-    2. Invia il file al telefono (mail, AirDrop, Drive...) e caricalo qui.<br>
-    3. Quando l'app girer&agrave; sul server aziendale i dati si aggiorneranno da soli
-    (l'app cerca <i>bussola_dati.json</i> accanto a s&eacute;).<br><br>
-    &#128274; I dati restano solo su questo dispositivo: l'app non li invia da nessuna parte.</p>
+    <p class="muted">${datiUrl?`BUSSOLA rigenera il file <b>bussola_dati.json</b> a ogni salvataggio
+    e lo pubblica nella cartella aziendale. La app lo rilegge a ogni avvio e quando premi
+    <b>Aggiorna adesso</b>: non serve fare altro.<br><br>
+    Senza rete la app resta consultabile con l'ultimo aggiornamento scaricato, indicato qui sopra.`
+    :`1. Chiedi l'indirizzo del file dati a chi gestisce BUSSOLA.<br>
+    2. Premi <b>Attiva aggiornamento automatico</b> e incollalo: succede una volta sola.<br>
+    3. In alternativa puoi ancora caricare a mano il file generato dalla pagina
+    <i>Dati per app mobile</i> di BUSSOLA.`}<br><br>
+    &#128274; I dati restano su questo dispositivo: la app li legge soltanto, non li invia da nessuna parte.</p>
   </div>`;
 }
 function pgInfo(){
@@ -932,7 +1081,9 @@ function pgInfo(){
   revisioni di budget (T1&ndash;T4) e l'avanzamento (consuntivato, provvisorio o parziale al 15).</p>
   <p class="muted" style="margin-top:8px">Suggerimento: dal browser usa <b>&laquo;Aggiungi alla schermata Home&raquo;</b>
   per installarla come app.</p>
-  <p class="muted" style="margin-top:8px">I dati si caricano dalla pagina <b>Dati</b> e non lasciano il dispositivo.</p></div>`;
+  <p class="muted" style="margin-top:8px">${daServer?'I dati si sincronizzano automaticamente con il server BUSSOLA.'
+    :(datiUrl?'I dati si aggiornano da soli dalla cartella aziendale, a ogni avvio.'
+             :'I dati si caricano dalla pagina <b>Dati</b>.')}</p></div>`;
 }
 
 /* ============================== router ============================== */
@@ -956,7 +1107,7 @@ function render(){
   const footEl = document.querySelector("footer");
   // cancello d'ingresso: prima si crea il PIN, poi a ogni apertura si sblocca
   const hdrEl = document.querySelector("header.top");
-  if(!protetta() || !sbloccata()){
+  if(!daServer && (!protetta() || !sbloccata())){
     app.innerHTML = protetta() ? pgLock() : pgSetup();
     back.style.display = "none"; navEl.style.display = "none";
     footEl.style.display = "none"; hdrEl.style.display = "none";
@@ -976,8 +1127,23 @@ function render(){
   window.scrollTo(0,0);
 }
 window.addEventListener("hashchange", render);
+/* Riprendendo la app dopo averla lasciata aperta: col server si chiede solo la
+   versione (poche decine di byte), col file aziendale si riscarica, ma non piu'
+   di una volta al minuto per non consumare dati inutilmente. */
+let ultimoRisync = 0;
+function risincronizza(){
+  if(daServer){ controllaVersione(); return; }
+  if(!datiUrl) return;
+  const ora = Date.now();
+  if(ora - ultimoRisync < 60000) return;
+  ultimoRisync = ora;
+  aggiornaDaUrl(true).then(ok => { if(ok) render(); });
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) risincronizza(); });
+window.addEventListener("online",()=>risincronizza());
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 caricaAuto();
+setInterval(controllaVersione, 90000);
 </script>
 </body>
 </html>
