@@ -25,6 +25,8 @@ header.top{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#1
 header.top .logo{font-size:22px}
 header.top h1{font-size:17px;font-weight:700;letter-spacing:.4px;flex:1;min-width:0;white-space:nowrap}
 header.top .sub{font-size:11px;opacity:.8}
+.year-mobile{border:1px solid rgba(255,255,255,.45);border-radius:8px;background:#fff;color:var(--navy);
+  font-weight:800;padding:6px 7px;font-size:12px}
 main{padding:14px;max-width:760px;margin:0 auto}
 .card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;
   box-shadow:0 1px 4px rgba(20,35,70,.08)}
@@ -118,6 +120,9 @@ nav.bottom a.on{color:var(--navy);font-weight:700}
 .mstrip i.cons{background:#79b98a}.mstrip i.prov{background:#e9cf6b}.mstrip i.parz{background:#e5a45c}
 footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--muted)}
 @media(max-width:430px){
+  header.top{padding-left:9px;padding-right:9px;gap:7px}
+  header.top>span{padding:3px 5px!important}header.top>span img{height:19px!important}
+  header.top h1{font-size:15px}.year-mobile{width:66px;padding:5px 3px;font-size:11px}
   header.top .sub{display:none} main{padding:12px}.kpis{gap:8px}.kpi{padding:11px 10px}
   .kpi .val{font-size:19px}.tiles{gap:9px}.tile{padding:15px 10px}
 }
@@ -149,6 +154,9 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
   <span style="background:#fff;border-radius:8px;padding:4px 8px;display:inline-flex;align-items:center">
     <img src="logo.png" alt="Cosedil" style="height:22px"></span>
   <h1>BUSSOLA <span class="sub" id="subtitle">Controllo Commesse</span></h1>
+  <select id="year-mobile" class="year-mobile" aria-label="Esercizio" onchange="cambiaAnnoMobile(this.value)">
+    <option value="2026">2026</option><option value="2027">2027</option>
+  </select>
 </header>
 <main id="app"></main>
 <nav class="bottom">
@@ -158,7 +166,7 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
   <a href="#commesse" data-nav="commesse"><span class="i">&#127959;&#65039;</span>Commesse</a>
   <a href="#dati" data-nav="dati"><span class="i">&#128260;</span>Dati</a>
 </nav>
-<footer>Cosedil SpA BUSSOLA &middot; accesso riservato</footer>
+<footer>Cosedil SpA BUSSOLA &middot; Mobile 4.0 &middot; accesso riservato</footer>
 
 <script>
 "use strict";
@@ -168,7 +176,11 @@ const MESIF = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio",
                "agosto","settembre","ottobre","novembre","dicembre"];
 const REVS = ["T1","T2","T3","T4"];
 const CATS = {F:"Forecast", CD:"Costi diretti", CI:"Costi Indiretti"};
+const APP_VERSION = "4.0";
 let D = null;                       // dati caricati
+let PACCHETTO = null;               // file SharePoint multianno completo
+let annoDati = Number(sessionStorage.getItem("b_anno") || "2026");
+if(![2026,2027].includes(annoDati)) annoDati=2026;
 let rev = localStorage.getItem("b_rev") || "T2";
 if(!REVS.includes(rev)){ rev="T2"; localStorage.setItem("b_rev",rev); }
 let catSel = "F";
@@ -234,15 +246,15 @@ function margA(c,m){ const f=act(c,"Forecast")[m-1], cd=act(c,"Costi diretti")[m
 function margB(c,r,m){ return (bud(c,r,"Forecast")[m-1]||0)-(bud(c,r,"Costi diretti")[m-1]||0)-(bud(c,r,"Costi Indiretti")[m-1]||0); }
 
 /* ---- vita della commessa: dall'inizio dei lavori a oggi ----
-   prodotto = progressivo Ricavi SIL al 31/12/25 + produzione registrata nel
-   2026 (consuntivata, provvisoria o parziale). SAL BIS ed extra restano fuori:
+   prodotto = progressivo di apertura + produzione dell'esercizio selezionato.
+   SAL BIS ed extra restano fuori:
    non sono contratto, quindi non entrano nella percentuale di avanzamento. */
 function vita(c){
   const k = mesiCons(), p = c.preg || {};
   const r26 = S(act(c,"Forecast")), d26 = S(act(c,"Costi diretti")), i26 = S(act(c,"Costi Indiretti"));
   const prod = (p.ricavi||0) + r26;
   const costi = (p.cd||0) + (p.ci||0) + d26 + i26;
-  // stima a fine 2026: actual dei mesi chiusi + budget della revisione sul resto
+  // stima a fine esercizio: actual dei mesi chiusi + budget della revisione sul resto
   const fine26 = (p.ricavi||0) + S(slice(act(c,"Forecast"),1,k)) + S(slice(bud(c,rev,"Forecast"),k+1,12));
   return { contratto:p.contratto||null, ric25:p.ricavi||0, ric26:r26,
            prod, costi, marg:prod-costi, fine26 };
@@ -319,7 +331,7 @@ async function faceSblocca(){
 }
 function resetTotale(){
   if(confirm("Cancellare PIN, sblocco biometrico e TUTTI i dati caricati su questo dispositivo?")){
-    localStorage.clear(); sessionStorage.clear(); D=null; location.hash="#home"; render(); }
+    localStorage.clear(); sessionStorage.clear(); D=null; PACCHETTO=null; location.hash="#home"; render(); }
 }
 /* rosa dei venti: la STESSA del login BUSSOLA su PC (toccarla = entrare) */
 const BUSSOLA_SVG = `<svg viewBox="0 0 220 220" class="bsvg" role="img" aria-label="Rosa dei venti">
@@ -359,7 +371,7 @@ function pgSetup(){
   <p class="bgo">Scegli il PIN, poi <b>tocca la bussola</b> per entrare.<br>
   <small style="color:#667788">Potrai attivare anche Face ID / Touch ID.</small></p>
   <button class="btn" style="width:100%" onclick="creaPin()">Crea PIN ed entra</button>
-  <p class="lver">Cosedil SpA BUSSOLA &middot; app mobile &middot; i dati restano sul dispositivo</p>
+  <p class="lver">BUSSOLA Mobile ${APP_VERSION} &middot; i dati restano sul dispositivo</p>
   </div></div>`;
 }
 function pgLock(){
@@ -379,23 +391,34 @@ function pgLock(){
   <small style="color:#667788">(o premi Invio)</small></p>
   <button class="btn ${bio?'ghost':''}" style="width:100%" onclick="provaPin()">Entra</button>
   <p id="pinerr" class="neg" style="text-align:center;font-size:13px;min-height:18px;margin-top:8px"></p>
-  <p class="lver"><a href="#" onclick="resetTotale();return false" style="color:#aab">
+  <p class="lver">BUSSOLA Mobile ${APP_VERSION}<br><a href="#" onclick="resetTotale();return false" style="color:#aab">
   PIN dimenticato? Reimposta l'app (cancella i dati)</a></p>
   </div></div>`;
 }
 
 /* ============================== dati ============================== */
+function usaPacchetto(j, anno=annoDati){
+  const esercizi = j && j.esercizi;
+  const scelto = esercizi ? esercizi[String(anno)] : j;
+  if(!scelto || !Array.isArray(scelto.commesse))
+    throw new Error("il file non contiene i dati dell'esercizio " + anno);
+  PACCHETTO = j;
+  D = scelto;
+  annoDati = Number(D.esercizio || anno);
+  sessionStorage.setItem("b_anno", String(annoDati));
+  versioneDati = String(j.versione || D.versione || D.generato || "");
+  return D;
+}
 async function aggiornaServer(silenzioso=false){
   try{
-    const r = await fetch("bussola_dati.json", {cache:"no-store",credentials:"same-origin"});
+    const r = await fetch("bussola_dati.json?anno="+annoDati, {cache:"no-store",credentials:"same-origin"});
     const ct = r.headers.get("content-type") || "";
     if(r.redirected || !r.ok || !ct.includes("application/json")){
       D=null; sync={online:false,errore:"Sessione scaduta",ultimo:sync.ultimo};
       render(); location.href="../login"; return false;
     }
     const j = await r.json();
-    if(!j || !Array.isArray(j.commesse)) throw new Error("Risposta dati non valida");
-    D=j; versioneDati=String(j.versione||"");
+    usaPacchetto(j, annoDati);
     sync={online:true,errore:"",ultimo:new Date().toLocaleString("it-IT")};
     // Rimuove i dati sensibili eventualmente lasciati da versioni precedenti.
     localStorage.removeItem("b_dati"); localStorage.removeItem("b_server");
@@ -410,7 +433,7 @@ async function aggiornaServer(silenzioso=false){
 async function controllaVersione(){
   if(!daServer || document.hidden) return;
   try{
-    const r=await fetch("stato-dati.json",{cache:"no-store",credentials:"same-origin"});
+    const r=await fetch("stato-dati.json?anno="+annoDati,{cache:"no-store",credentials:"same-origin"});
     const ct=r.headers.get("content-type")||"";
     if(r.redirected || !r.ok || !ct.includes("application/json")){
       D=null; render(); location.href="../login"; return;
@@ -419,6 +442,18 @@ async function controllaVersione(){
     if(v && v!==versioneDati){ await aggiornaServer(true); render(); }
     else sync.online=true;
   }catch(e){ sync.online=false; sync.errore=e.message||"Server non raggiungibile"; }
+}
+async function cambiaAnnoMobile(v){
+  const a=Number(v); if(![2026,2027].includes(a)||a===annoDati)return;
+  if(daServer){
+    annoDati=a; sessionStorage.setItem("b_anno",String(a)); D=null; versioneDati="";
+    await aggiornaServer(false); return;
+  }
+  if(PACCHETTO && PACCHETTO.esercizi && PACCHETTO.esercizi[String(a)]){
+    usaPacchetto(PACCHETTO,a); render(); return;
+  }
+  const sel=document.getElementById("year-mobile"); if(sel)sel.value=String(annoDati);
+  alert("Il file SharePoint non contiene ancora i dati del "+a+". Aggiornalo da BUSSOLA e riprova.");
 }
 /* Lettura del file pubblicato da BUSSOLA nella cartella aziendale. La copia
    scaricata resta sul telefono, cosi' la app funziona anche senza rete e non
@@ -429,8 +464,7 @@ async function aggiornaDaUrl(silenzioso=false){
     const r = await fetch(datiUrl, {cache:"no-store"});
     if(!r.ok) throw new Error("il server ha risposto " + r.status);
     const j = await r.json();
-    if(!j || !Array.isArray(j.commesse)) throw new Error("il file non contiene le commesse");
-    D = j; versioneDati = String(j.versione||"");
+    usaPacchetto(j, annoDati);
     try{ localStorage.setItem("b_dati", JSON.stringify(j)); }catch(e){}
     localStorage.setItem("b_sync", new Date().toLocaleString("it-IT"));
     sync = {online:true, errore:"", ultimo:localStorage.getItem("b_sync")};
@@ -449,7 +483,7 @@ async function aggiornaDaUrl(silenzioso=false){
 async function caricaAuto(){
   if(daServer){ await aggiornaServer(false); return; }
   const s = localStorage.getItem("b_dati");
-  if(s){ try{ D=JSON.parse(s); }catch(e){ localStorage.removeItem("b_dati"); } }
+  if(s){ try{ usaPacchetto(JSON.parse(s),annoDati); }catch(e){ localStorage.removeItem("b_dati"); } }
   sync.ultimo = localStorage.getItem("b_sync") || "";
   // Prima si mostra la copia gia' scaricata, poi si va a vedere se e' cambiata:
   // l'app e' subito utilizzabile anche con la rete lenta.
@@ -470,7 +504,7 @@ function togliUrl(){
   datiUrl = ""; localStorage.removeItem("b_url"); render();
 }
 function esciServer(){
-  D=null; versioneDati="";
+  D=null; PACCHETTO=null; versioneDati="";
   localStorage.removeItem("b_dati"); localStorage.removeItem("b_server");
   location.href="../logout";
 }
@@ -478,13 +512,13 @@ function caricaFile(f){
   const rd = new FileReader();
   rd.onload = () => { try{
       const j = JSON.parse(rd.result);
-      if (!j.commesse) throw new Error("formato non valido");
-      D = j; localStorage.setItem("b_dati", JSON.stringify(j));
+      usaPacchetto(j,annoDati); localStorage.setItem("b_dati", JSON.stringify(j));
       location.hash = "#home"; render();
     }catch(e){ alert("File non valido: " + e.message); } };
   rd.readAsText(f);
 }
 function datiDemo(){
+  PACCHETTO=null;
   const nomi = [["101-001 - PONTE SUD","ROSSI","BIANCHI"],["102-002 - VIADOTTO EST","ROSSI","VERDI"],
     ["103-003 - GALLERIA NORD","FLERES","DI BELLA"],["104-004 - DIGA OVEST","PAGLINI","FRONCILLO"],
     ["105-005 - PORTO NUOVO","PAVONE","NERI"],["106-006 - FERROVIA ALTA","FLERES","DI BELLA"],
@@ -572,7 +606,7 @@ function cardVita(c){
     <div class="muted" style="margin-top:8px">Margine a vita
       <b class="${v.marg<0?'neg':'pos'}">${eurK(v.marg)}</b>
       (${pct(v.prod?v.marg/v.prod:null)}) &middot; costi ${eurK(v.costi)}</div>
-    <p class="muted" style="margin-top:8px;font-size:11px">Prodotto = progressivo al 31/12/25
+    <p class="muted" style="margin-top:8px;font-size:11px">Prodotto = progressivo al 31/12/${D.esercizio-1}
       ${eurK(v.ric25)} + produzione ${D.esercizio} ${eurK(v.ric26)}. SAL BIS ed extra sono fuori
       contratto e non entrano nella percentuale.</p>
   </div>`;
@@ -1053,7 +1087,7 @@ function pgDati(){
         onchange="caricaFile(this.files[0])"></label></p>
     `}
     <p style="margin-top:10px"><button class="btn ghost small" onclick="datiDemo()">Dati demo</button>
-    &nbsp;<button class="btn ghost small" onclick="localStorage.removeItem('b_dati');localStorage.removeItem('b_sync');D=null;sync={online:false,errore:'',ultimo:''};render()">Cancella dati</button></p>
+    &nbsp;<button class="btn ghost small" onclick="localStorage.removeItem('b_dati');localStorage.removeItem('b_sync');D=null;PACCHETTO=null;sync={online:false,errore:'',ultimo:''};render()">Cancella dati</button></p>
   </div>
   <div class="card"><h3>Sicurezza</h3>
     <p class="muted" style="margin-bottom:10px">PIN attivo su questo dispositivo
@@ -1076,6 +1110,7 @@ function pgDati(){
 }
 function pgInfo(){
   return `<div class="card"><h2>&#129517; Cosedil SpA BUSSOLA</h2>
+  <div class="msg ok"><b>Release mobile ${APP_VERSION}</b> &middot; cache bussola-v10</div>
   <p class="muted">Versione tascabile del sistema di controllo commesse COSEDIL:
   dashboard KPI, avanzamento consuntivato e dell'ultimo periodo, confronto fra le
   revisioni di budget (T1&ndash;T4) e l'avanzamento (consuntivato, provvisorio o parziale al 15).</p>
@@ -1107,6 +1142,8 @@ function render(){
   const footEl = document.querySelector("footer");
   // cancello d'ingresso: prima si crea il PIN, poi a ogni apertura si sblocca
   const hdrEl = document.querySelector("header.top");
+  const yearEl = document.getElementById("year-mobile");
+  if(yearEl) yearEl.value=String(D?.esercizio||annoDati);
   if(!daServer && (!protetta() || !sbloccata())){
     app.innerHTML = protetta() ? pgLock() : pgSetup();
     back.style.display = "none"; navEl.style.display = "none";
@@ -1141,7 +1178,11 @@ function risincronizza(){
 }
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) risincronizza(); });
 window.addEventListener("online",()=>risincronizza());
-if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js", {updateViaCache:"none"})
+    .then(reg => reg.update())
+    .catch(()=>{});
+}
 caricaAuto();
 setInterval(controllaVersione, 90000);
 </script>

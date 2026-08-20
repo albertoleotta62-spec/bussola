@@ -1,6 +1,6 @@
 /* BUSSOLA mobile - cache del solo guscio grafico. I dati riservati e lo stato
    di sincronizzazione non vengono mai memorizzati dal service worker. */
-const CACHE = "bussola-v9";
+const CACHE = "bussola-v10";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "logo.png",
                "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
