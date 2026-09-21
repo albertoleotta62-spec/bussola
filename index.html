@@ -13,7 +13,23 @@
 :root{
   --navy:#1F3864; --blue:#2E5496; --gold:#BF8F00; --bg:#eef2f8; --card:#ffffff;
   --ink:#243043; --muted:#6b7688; --ok:#2E8B57; --ko:#B23A48; --warn:#a15c00;
-  --line:#e3e8f1;
+  --line:#e3e8f1; --titolo:#1F3864; --soft:#eef3fb; --track:#edf1f7;
+}
+/* Modalita' scura: la decide il telefono. Le superfici scure (--navy) restano
+   scure, i testi blu (--titolo) schiariscono: al buio lo stesso blu non puo'
+   fare sia da fondo sia da scritta. */
+@media (prefers-color-scheme: dark){
+  :root{
+    --navy:#2a4373; --blue:#5a82c4; --titolo:#9dbcf0; --gold:#d6a93c;
+    --bg:#10151d; --card:#1a2029; --ink:#e7ecf4; --muted:#98a3b4;
+    --ok:#63c68e; --ko:#e8737f; --warn:#d6a93c; --line:#2b3442;
+    --soft:#232d3d; --track:#232d3d;
+  }
+  .b-cons{background:#1d3a28;color:#8ed7a6}.b-prov{background:#3a3420;color:#e3cd82}
+  .b-parz{background:#3b2a1a;color:#e8b284}.b-open{background:#262f3c;color:#9aa6b8}
+  .msg.ok{background:#1d3a28;color:#8ed7a6}.msg.warn{background:#3a3420;color:#e3cd82}
+  .mstrip i.cons{background:#3e7a55}.mstrip i.prov{background:#8a7a33}.mstrip i.parz{background:#8a5c2e}
+  .card,.tile,.kpi,.clist .item,nav.bottom{box-shadow:0 1px 4px rgba(0,0,0,.35)}
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -25,28 +41,31 @@ header.top{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,#1
 header.top .logo{font-size:22px}
 header.top h1{font-size:17px;font-weight:700;letter-spacing:.4px;flex:1;min-width:0;white-space:nowrap}
 header.top .sub{font-size:11px;opacity:.8}
-.year-mobile{border:1px solid rgba(255,255,255,.45);border-radius:8px;background:#fff;color:var(--navy);
+.year-mobile{border:1px solid rgba(255,255,255,.45);border-radius:8px;background:var(--card);color:var(--titolo);
   font-weight:800;padding:6px 7px;font-size:12px}
 main{padding:14px;max-width:760px;margin:0 auto}
 .card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;
   box-shadow:0 1px 4px rgba(20,35,70,.08)}
-.card h2{font-size:15px;color:var(--navy);margin-bottom:10px}
-.card h3{font-size:13px;color:var(--navy);margin-bottom:6px}
+.card h2{font-size:15px;color:var(--titolo);margin-bottom:10px}
+.card h3{font-size:13px;color:var(--titolo);margin-bottom:6px}
 .muted{color:var(--muted);font-size:12px}
 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .tile{background:var(--card);border-radius:16px;padding:18px 14px;text-align:center;
   box-shadow:0 1px 4px rgba(20,35,70,.08);cursor:pointer;border:0;text-decoration:none;color:var(--ink)}
-.tile .ico{font-size:30px}
-.tile b{display:block;margin-top:8px;color:var(--navy);font-size:14px}
+.tile .ico{font-size:30px;line-height:1;color:var(--blue)}
+svg{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.tile .ico svg{width:30px;height:30px}
+nav.bottom a .i svg{width:22px;height:22px}
+.tile b{display:block;margin-top:8px;color:var(--titolo);font-size:14px}
 .tile span{display:block;margin-top:4px;font-size:11px;color:var(--muted)}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .kpi{background:var(--card);border-radius:14px;padding:12px;box-shadow:0 1px 4px rgba(20,35,70,.08);min-width:0;overflow:hidden}
 .kpi .lab{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.kpi .val{font-size:20px;font-weight:800;color:var(--navy);margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .val{font-size:20px;font-weight:800;color:var(--titolo);margin-top:3px;font-variant-numeric:tabular-nums}
 .kpi .det{font-size:11.5px;margin-top:3px;overflow-wrap:anywhere}
 .pos{color:var(--ok)} .neg{color:var(--ko)}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 10px}
-.chip{border:1.5px solid var(--line);background:#fff;border-radius:20px;padding:6px 14px;
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:20px;padding:6px 14px;
   font-size:13px;font-weight:600;color:var(--muted);cursor:pointer}
 .chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
 .bars{display:flex;align-items:flex-end;gap:3px;height:110px;margin-top:8px}
@@ -57,11 +76,11 @@ main{padding:14px;max-width:760px;margin:0 auto}
 .legend{display:flex;gap:14px;font-size:11px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
 .search{width:100%;padding:11px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;
-  background:#fff;margin-bottom:10px}
+  background:var(--card);margin-bottom:10px}
 .clist .item{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;
   box-shadow:0 1px 3px rgba(20,35,70,.07);display:block;cursor:pointer;
   text-decoration:none;color:var(--ink)}
-.clist b{color:var(--navy);font-size:14px}
+.clist b{color:var(--titolo);font-size:14px}
 .clist .row2{display:flex;justify-content:space-between;margin-top:5px;font-size:12px;color:var(--muted)}
 .badge{display:inline-block;border-radius:8px;padding:2px 8px;font-size:10.5px;font-weight:700}
 .b-cons{background:#dff1e2;color:#1d6b3a}.b-prov{background:#fdf3d0;color:#7f6000}
@@ -72,51 +91,55 @@ table.t th:first-child{text-align:left;border-radius:8px 0 0 0}
 table.t th:last-child{border-radius:0 8px 0 0}
 table.t td{padding:6px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
 table.t td:first-child{text-align:left;color:var(--muted)}
-table.t tr.tot td{font-weight:800;color:var(--navy);border-top:2px solid var(--navy)}
-.hbar{height:7px;background:#edf1f7;border-radius:4px;overflow:hidden;margin-top:3px}
+table.t tr.tot td{font-weight:800;color:var(--titolo);border-top:2px solid var(--titolo)}
+.hbar{height:7px;background:var(--track);border-radius:4px;overflow:hidden;margin-top:3px}
 .hbar i{display:block;height:100%;border-radius:4px}
-.hbar2{height:13px;background:#edf1f7;border-radius:7px;overflow:hidden;margin-top:8px;display:flex}
+.hbar2{height:13px;background:var(--track);border-radius:7px;overflow:hidden;margin-top:8px;display:flex}
 .hbar2 i{display:block;height:100%}
 .p15{display:block;font-size:9.5px;color:var(--warn);margin-top:2px;font-weight:600}
 .tbar{display:flex;gap:8px;margin-bottom:8px}
 .sel{flex:1;min-width:0;padding:9px 8px;border:1.5px solid var(--line);border-radius:10px;
-  font-size:12.5px;background:#fff;color:var(--ink);font-family:inherit}
+  font-size:12.5px;background:var(--card);color:var(--ink);font-family:inherit}
 .row3{display:flex;justify-content:space-between;margin-top:3px;font-size:11.5px;color:var(--muted)}
-/* conto economico: tabella larga, scorre in orizzontale dentro la card */
+/* conto economico: tabella larga, scorre in orizzontale dentro la card. La
+   colonna Voce resta ferma a sinistra, con un'ombra che dice che sotto c'e'
+   dell'altro. */
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px}
+.scorri{font-size:11px;color:var(--muted);margin-top:6px;display:flex;align-items:center;gap:5px}
 table.ce{border-collapse:collapse;font-size:11.5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 table.ce th{background:var(--navy);color:#fff;font-size:10px;font-weight:600;padding:5px 7px;text-align:right}
 table.ce th.q{background:var(--blue)}
 table.ce th.voce,table.ce td:first-child{text-align:left;position:sticky;left:0;z-index:2}
 table.ce th.voce{background:var(--navy)}
 table.ce td:first-child{background:var(--card);white-space:normal;min-width:112px;
-  font-size:11px;color:var(--ink);box-shadow:1px 0 0 var(--line)}
+  font-size:11px;color:var(--ink);box-shadow:3px 0 6px -2px rgba(15,25,50,.28)}
 table.ce td{padding:5px 7px;text-align:right;border-bottom:1px solid var(--line)}
 table.ce td.pc{color:var(--muted);font-size:10px}
-table.ce td.b{font-weight:800;color:var(--navy)}
+table.ce td.b{font-weight:800;color:var(--titolo)}
 table.ce td.vuoto{color:#b6bcc7}
-table.ce tr.forte td{background:#eef3fb;font-weight:700}
-table.ce tr.forte td:first-child{background:#eef3fb;color:var(--navy)}
-table.t tr.sel td{background:#eef3fb}
-table.t td.rev{text-align:left;color:var(--navy);font-weight:700}
-nav.bottom{position:fixed;left:0;right:0;bottom:0;background:#fff;display:flex;z-index:30;
+table.ce tr.forte td{background:var(--soft);font-weight:700}
+table.ce tr.forte td:first-child{background:var(--soft);color:var(--titolo)}
+table.t tr.sel td{background:var(--soft)}
+table.t td.rev{text-align:left;color:var(--titolo);font-weight:700}
+nav.bottom{position:fixed;left:0;right:0;bottom:0;background:var(--card);display:flex;z-index:30;
   border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);
   box-shadow:0 -2px 12px rgba(20,35,70,.08)}
-nav.bottom a{flex:1;text-align:center;padding:8px 0 6px;font-size:10.5px;color:var(--muted);text-decoration:none}
+nav.bottom a{flex:1;min-width:0;text-align:center;padding:8px 1px 6px;font-size:10px;
+  color:var(--muted);text-decoration:none;white-space:nowrap}
 nav.bottom a .i{display:block;font-size:20px;line-height:1.25}
-nav.bottom a.on{color:var(--navy);font-weight:700}
+nav.bottom a.on{color:var(--titolo);font-weight:700}
 .btn{display:inline-block;background:var(--navy);color:#fff;border:0;border-radius:12px;
   padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none}
-.btn.ghost{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.btn.ghost{background:var(--card);color:var(--titolo);border:1.5px solid var(--titolo)}
 .btn.small{padding:8px 12px;font-size:12.5px;border-radius:10px}
 .msg{border-radius:12px;padding:10px 12px;font-size:13px;margin-bottom:10px}
 .msg.ok{background:#dff1e2;color:#1d6b3a}.msg.warn{background:#fdf3d0;color:#7f6000}
 .back{color:#fff;text-decoration:none;font-size:22px;line-height:1;padding:4px 8px 4px 0}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .statmini .lab{font-size:10.5px;color:var(--muted)}
-.statmini .val{font-size:15px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.statmini .val{font-size:15px;font-weight:800;color:var(--titolo);font-variant-numeric:tabular-nums}
 .mstrip{display:flex;gap:3px;margin-top:8px}
-.mstrip i{flex:1;height:8px;border-radius:3px;background:#e8ecf3}
+.mstrip i{flex:1;height:8px;border-radius:3px;background:var(--track)}
 .mstrip i.cons{background:#79b98a}.mstrip i.prov{background:#e9cf6b}.mstrip i.parz{background:#e5a45c}
 footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--muted)}
 @media(max-width:430px){
@@ -128,7 +151,7 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
 }
 @media(max-width:340px){.kpis,.grid2{grid-template-columns:1fr}}
 /* ---- schermata di accesso: stessa veste del login BUSSOLA su PC ---- */
-.lockwrap{margin:-14px;background:#fff;min-height:100vh}
+.lockwrap{margin:-14px;background:var(--card);min-height:100vh}
 .lockpan{background:linear-gradient(160deg,#1F3864 0%,#16294a 100%);color:#fff;
   padding:calc(30px + env(safe-area-inset-top)) 20px 26px;text-align:center}
 .bsvg{width:150px;height:150px;display:block;margin:0 auto}
@@ -139,10 +162,10 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
 .bmotto{color:#ffd966;font-size:13.5px;font-style:italic;margin-top:8px}
 .lockform{padding:24px 22px 34px;max-width:480px;margin:0 auto}
 .blogo{height:38px;display:block;margin-bottom:14px}
-.lockform h2{color:var(--navy);font-size:16px;margin:0 0 2px}
+.lockform h2{color:var(--titolo);font-size:16px;margin:0 0 2px}
 .lsub{color:#667788;font-size:12.5px;margin:0 0 16px}
 .lockform label{display:block;margin:10px 0 4px;font-size:13px;font-weight:600;color:var(--ink)}
-.bgo{margin:14px 0;font-size:13px;color:var(--navy);background:#eef3fb;
+.bgo{margin:14px 0;font-size:13px;color:var(--titolo);background:var(--soft);
   border:1px dashed #b9c4d6;border-radius:8px;padding:10px 12px;line-height:1.45}
 .bgo::before{content:"\261D\00a0";color:var(--gold);font-size:15px}
 .lver{font-size:10.5px;color:#aab;margin-top:16px;text-align:center}
@@ -160,13 +183,14 @@ footer{padding:8px 16px 16px;text-align:center;font-size:10.5px;color:var(--mute
 </header>
 <main id="app"></main>
 <nav class="bottom">
-  <a href="#home" data-nav="home"><span class="i">&#127968;</span>Home</a>
-  <a href="#dash" data-nav="dash"><span class="i">&#128202;</span>Dashboard</a>
-  <a href="#ce" data-nav="ce"><span class="i">&#129534;</span>Conto ec.</a>
-  <a href="#commesse" data-nav="commesse"><span class="i">&#127959;&#65039;</span>Commesse</a>
-  <a href="#dati" data-nav="dati"><span class="i">&#128260;</span>Dati</a>
+  <a href="#home" data-nav="home"><span class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 11.2 12 4.3l8.5 6.9V20a1 1 0 0 1-1 1h-4.6v-5.6H9.1V21H4.5a1 1 0 0 1-1-1z"/></svg></span>Home</a>
+  <a href="#dash" data-nav="dash"><span class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20.2h16"/><path d="M6.6 20V12"/><path d="M11.4 20V5.4"/><path d="M16.2 20v-5.6"/></svg></span>Dashboard</a>
+  <a href="#ce" data-nav="ce"><span class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.8 3.2h7l4.4 4.4v13.2H6.8z"/><path d="M13.6 3.2v4.6h4.6"/><path d="M9.6 12.6h5.6M9.6 16.2h5.6"/></svg></span>Conto ec.</a>
+  <a href="#silsal" data-nav="silsal"><span class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.6h16"/><path d="M4 16.2 9.2 11l3.6 3.4 6.6-7.2"/><path d="M15.6 7.2h3.8v3.8"/></svg></span>SIL/SAL</a>
+  <a href="#commesse" data-nav="commesse"><span class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 20.4h16.8"/><path d="M6 20.4V8.6l6-3.2 6 3.2v11.8"/><path d="M10 20.4v-4.4h4v4.4"/><path d="M9.8 11.4h1.6M12.6 11.4h1.6"/></svg></span>Commesse</a>
+  <a href="#dati" data-nav="dati"><span class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.2 4.2v4.8h-4.8"/></svg></span>Dati</a>
 </nav>
-<footer>Cosedil SpA BUSSOLA &middot; Mobile 4.0 &middot; accesso riservato</footer>
+<footer>Cosedil SpA BUSSOLA &middot; Mobile <span id="ver"></span> &middot; accesso riservato</footer>
 
 <script>
 "use strict";
@@ -176,11 +200,17 @@ const MESIF = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio",
                "agosto","settembre","ottobre","novembre","dicembre"];
 const REVS = ["T1","T2","T3","T4"];
 const CATS = {F:"Forecast", CD:"Costi diretti", CI:"Costi Indiretti"};
-const APP_VERSION = "4.0";
+const APP_VERSION = "5.0";
+const CACHE_NOME = "bussola-v" + APP_VERSION;
+/* Gli esercizi disponibili li dice il pacchetto dati (chiave "anni"): qui c'e'
+   solo il ripiego per il primo avvio, prima che i dati arrivino. Prima erano
+   scritti in due punti del guscio, e aprire un anno nuovo voleva dire
+   ripubblicare la app. */
+let ANNI = [2026, 2027];
 let D = null;                       // dati caricati
 let PACCHETTO = null;               // file SharePoint multianno completo
-let annoDati = Number(sessionStorage.getItem("b_anno") || "2026");
-if(![2026,2027].includes(annoDati)) annoDati=2026;
+let annoDati = Number(sessionStorage.getItem("b_anno") || String(ANNI[0]));
+if(!ANNI.includes(annoDati)) annoDati=ANNI[0];
 let rev = localStorage.getItem("b_rev") || "T2";
 if(!REVS.includes(rev)){ rev="T2"; localStorage.setItem("b_rev",rev); }
 let catSel = "F";
@@ -397,12 +427,20 @@ function pgLock(){
 }
 
 /* ============================== dati ============================== */
+function impostaAnni(lista){
+  const nuovi = (lista||[]).map(Number).filter(a=>a>2000).sort((x,y)=>x-y);
+  if(!nuovi.length || nuovi.join()===ANNI.join()) return;
+  ANNI = nuovi;
+  const sel = document.getElementById("year-mobile");
+  if(sel) sel.innerHTML = ANNI.map(a=>'<option value="'+a+'">'+a+'</option>').join("");
+}
 function usaPacchetto(j, anno=annoDati){
   const esercizi = j && j.esercizi;
   const scelto = esercizi ? esercizi[String(anno)] : j;
   if(!scelto || !Array.isArray(scelto.commesse))
     throw new Error("il file non contiene i dati dell'esercizio " + anno);
   PACCHETTO = j;
+  impostaAnni(j.anni || (j.esercizi && Object.keys(j.esercizi)));
   D = scelto;
   annoDati = Number(D.esercizio || anno);
   sessionStorage.setItem("b_anno", String(annoDati));
@@ -444,7 +482,7 @@ async function controllaVersione(){
   }catch(e){ sync.online=false; sync.errore=e.message||"Server non raggiungibile"; }
 }
 async function cambiaAnnoMobile(v){
-  const a=Number(v); if(![2026,2027].includes(a)||a===annoDati)return;
+  const a=Number(v); if(!ANNI.includes(a)||a===annoDati)return;
   if(daServer){
     annoDati=a; sessionStorage.setItem("b_anno",String(a)); D=null; versioneDati="";
     await aggiornaServer(false); return;
@@ -697,7 +735,17 @@ function ceMatrice(sel, conSg){
       const mol = vdp-cd-ci;
       r = {vdp, extra:ex, tot_vdp:vdp+ex, cd:-cd, ci:-ci, mol,
            mrg_contr:ex, tot_mrg:mol+ex, sg:null, ebitda:null};
-      if(conSg){ const sg = sgMese*col.mesi.length;
+      if(conSg){
+        // mese per mese se il file li porta (dalla 5.0 in poi): budget o
+        // actual secondo la colonna, come la web app; altrimenti annuo/12
+        const M = D.spese_generali_mesi;
+        let sg = 0;
+        if(M && M.budget && M.actual){
+          for(const m of col.mesi){
+            const usaActual = col.f==="A" || (col.f==="F" && chiusi.has(m));
+            sg += (usaActual ? M.actual[m-1] : M.budget[m-1]) || 0;
+          }
+        } else sg = sgMese*col.mesi.length;
         r.sg = -sg; r.ebitda = r.tot_mrg - sg; }
     }
     out[col.k] = r;
@@ -739,6 +787,8 @@ function pgCE(){
       <thead><tr><th class="voce">Voce</th>${h1}</tr><tr><th class="voce"></th>${h2}</tr></thead>
       <tbody>${righe}</tbody>
     </table></div>
+    ${cols.length>2?`<div class="scorri">&#8594; scorri di lato: altre ${cols.length-2} colonne
+      (la voce resta ferma a sinistra)</div>`:""}
     <p class="muted" style="margin-top:8px;font-size:11px">Trimestri disponibili:
       <b>${q.join(", ")||"nessuno"}</b> (un trimestre compare quando ha l'actual di
       tutti e tre i mesi). <b>Budget Qn</b> = revisione in vigore in quel trimestre,
@@ -776,6 +826,14 @@ function cardRevisioni(c){
   </div>`;
 }
 
+/* Chi sta guardando: lo dice il server nel pacchetto dati (chiave "utente").
+   Fuori dalla VPN il file non ha un destinatario, quindi non c'e' nessun
+   perimetro da dichiarare e le due funzioni restano mute. */
+function U(){ return (D && D.utente) || null; }
+function chiVedi(){
+  const u = U();
+  return (u && u.perimetro) ? ' &middot; <b>' + esc(u.perimetro) + '</b>' : "";
+}
 /* ============================== pagine ============================== */
 function pgHome(){
   if(!D) return pgNoDati();
@@ -784,16 +842,17 @@ function pgHome(){
   const gen = (D.generato||"").slice(0,16).replace("T"," ");
   return `
   <div class="card">
-    <h2>Benvenuto</h2>
-    <div class="muted">Esercizio <b>${D.esercizio}</b> &middot; ${nc} commesse &middot; dati del ${esc(gen)}${D.demo?' &middot; <b style="color:var(--warn)">DEMO</b>':''}</div>
+    <h2>${U() && U().nome ? "Ciao, "+esc(U().nome.split(" ")[0]) : "Benvenuto"}</h2>
+    <div class="muted">Esercizio <b>${D.esercizio}</b>${chiVedi()} &middot; ${nc} commesse &middot; dati del ${esc(gen)}${D.demo?' &middot; <b style="color:var(--warn)">DEMO</b>':''}</div>
     ${stripMesi()}
   </div>
   <div class="tiles">
-    <a class="tile" href="#dash"><span class="ico">&#128202;</span><b>Dashboard</b><span>KPI e andamento mensile</span></a>
-    <a class="tile" href="#commesse"><span class="ico">&#127959;&#65039;</span><b>Commesse</b><span>avanzamento e confronti</span></a>
-    <a class="tile" href="#ce"><span class="ico">&#129534;</span><b>Conto economico</b><span>sintesi Project Control</span></a>
-    <a class="tile" href="#dati"><span class="ico">&#128260;</span><b>Aggiorna dati</b><span>carica il file da BUSSOLA</span></a>
-    <a class="tile" href="#info"><span class="ico">&#8505;&#65039;</span><b>Info</b><span>come funziona</span></a>
+    <a class="tile" href="#dash"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20.2h16"/><path d="M6.6 20V12"/><path d="M11.4 20V5.4"/><path d="M16.2 20v-5.6"/></svg></span><b>Dashboard</b><span>KPI e andamento mensile</span></a>
+    <a class="tile" href="#commesse"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.6 20.4h16.8"/><path d="M6 20.4V8.6l6-3.2 6 3.2v11.8"/><path d="M10 20.4v-4.4h4v4.4"/><path d="M9.8 11.4h1.6M12.6 11.4h1.6"/></svg></span><b>Commesse</b><span>avanzamento e confronti</span></a>
+    <a class="tile" href="#silsal"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.6h16"/><path d="M4 16.2 9.2 11l3.6 3.4 6.6-7.2"/><path d="M15.6 7.2h3.8v3.8"/></svg></span><b>SIL vs SAL</b><span>produzione riconosciuta a SAL</span></a>
+    <a class="tile" href="#ce"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.8 3.2h7l4.4 4.4v13.2H6.8z"/><path d="M13.6 3.2v4.6h4.6"/><path d="M9.6 12.6h5.6M9.6 16.2h5.6"/></svg></span><b>Conto economico</b><span>sintesi Project Control</span></a>
+    <a class="tile" href="#dati"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20.2 4.2v4.8h-4.8"/></svg></span><b>Aggiorna dati</b><span>carica il file da BUSSOLA</span></a>
+    <a class="tile" href="#info"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.4"/><path d="M12 11v5.4"/><path d="M12 7.7v.9"/></svg></span><b>Info</b><span>come funziona</span></a>
   </div>
   <div class="card" style="margin-top:12px">
     <h3>Adesso</h3>
@@ -1026,6 +1085,7 @@ function pgCommessa(i){
       <div class="muted" style="margin-top:6px">Stima anno (B+C): <b style="color:var(--navy)">${eurK(bcP)}</b>
        &middot; margine <b class="${bcM<0?'neg':'pos'}">${eurK(bcM)}</b></div></div>
   </div>
+  ${cardSilSal(c.c)}
   ${cardExtra(c, pA, mA)}
   <div class="card">
     <h2>Budget vs Avanzamento</h2>
@@ -1110,7 +1170,9 @@ function pgDati(){
 }
 function pgInfo(){
   return `<div class="card"><h2>&#129517; Cosedil SpA BUSSOLA</h2>
-  <div class="msg ok"><b>Release mobile ${APP_VERSION}</b> &middot; cache bussola-v10</div>
+  <div class="msg ok"><b>Release mobile ${APP_VERSION}</b> &middot; cache ${CACHE_NOME}</div>
+  ${U() ? `<p class="muted">Stai guardando il perimetro di <b>${esc(U().perimetro)}</b>${
+      U().nome?` (${esc(U().nome)})`:""}${U().spese_generali?"":", senza le spese generali"}.</p>` : ""}
   <p class="muted">Versione tascabile del sistema di controllo commesse COSEDIL:
   dashboard KPI, avanzamento consuntivato e dell'ultimo periodo, confronto fra le
   revisioni di budget (T1&ndash;T4) e l'avanzamento (consuntivato, provvisorio o parziale al 15).</p>
@@ -1121,6 +1183,117 @@ function pgInfo(){
              :'I dati si caricano dalla pagina <b>Dati</b>.')}</p></div>`;
 }
 
+
+/* ====================== SIL vs SAL (dal file dati) ====================== */
+/* Quanta produzione (SIL) e' gia' stata riconosciuta a SAL. Sul telefono e'
+   una vista: i SAL emessi non ancora in CoGe si scrivono dalla web app e qui
+   arrivano gia' dentro il conto To Date. */
+function SS(){ return (D && D.silsal) || null; }
+function mLab(m){
+  const p = String(m||"").split("-");
+  if(p.length<2) return esc(m||"");
+  const i = Number(p[1])-1;
+  return (MESI[i]||"").replace(/^./,x=>x.toUpperCase()) + " " + p[0].slice(2);
+}
+function ssRighe(){
+  const S = SS(); if(!S) return [];
+  const chi = {}; (D.commesse||[]).forEach(c => chi[c.c] = c);
+  return Object.keys(S.commesse).map(n => {
+    const v = S.commesse[n], a = chi[n] || {};
+    const sil = v.sil[v.sil.length-1] || 0, sal = v.sal[v.sal.length-1] || 0;
+    return {n, v, dt:a.dt||"", pm:a.pm||"", sil, sal, d:sil-sal,
+            prod:v.prod||0, em:v.em||0, nota:v.nota||""};
+  }).filter(r => (!filtroDT || r.dt===filtroDT) && (!filtroPM || r.pm===filtroPM))
+    .sort((a,b) => b.d - a.d);
+}
+function pgSilSal(){
+  if(!D) return pgNoDati();
+  const SL = SS();
+  if(!SL) return `<div class="card"><h2>SIL vs SAL</h2>
+    <div class="msg warn">Questo file dati non contiene il SIL vs SAL: e' stato
+    prodotto da una versione precedente di BUSSOLA. Aggiorna il file dalla
+    pagina <b>Dati</b> e il riquadro comparira'.</div></div>`;
+  const righe = ssRighe();
+  const td = SL.todate || null;
+  let tsil=0, tsal=0, tprod=0, tem=0;
+  righe.forEach(r => { tsil+=r.sil; tsal+=r.sal; tprod+=r.prod; tem+=r.em; });
+  const tdelta = tsil - tsal;
+  const dts = [...new Set((D.commesse||[]).map(c=>c.dt).filter(Boolean))].sort();
+  const base = mLab(SL.base);
+  const kpi = `<div class="kpis">
+    <div class="kpi"><div class="lab">SIL progressivo</div><div class="val">${eurK(tsil)}</div>
+      <div class="det muted">a ${base}</div></div>
+    <div class="kpi"><div class="lab">SAL progressivo</div><div class="val">${eurK(tsal)}</div>
+      <div class="det muted">riconosciuto dal CoGe</div></div>
+    <div class="kpi"><div class="lab">Delta SIL/SAL</div><div class="val">${eurK(tdelta)}</div>
+      <div class="det muted">${tsil?pct(tdelta/tsil):"&mdash;"} del SIL</div></div>
+    <div class="kpi"><div class="lab">Commesse</div><div class="val">${righe.length}</div>
+      <div class="det muted">${filtroDT||filtroPM?"con il filtro attivo":"nel file"}</div></div>
+  </div>`;
+  const oggi = td ? `<div class="card">
+    <h3>To Date &middot; oltre il CoGe di ${base}</h3>
+    <div class="grid2" style="margin-top:6px">
+      <div class="statmini"><div class="lab">SIL To Date</div><div class="val">${eurK(tsil+tprod)}</div></div>
+      <div class="statmini"><div class="lab">SAL To Date</div><div class="val">${eurK(tsal+tem)}</div></div>
+    </div>
+    <div class="statmini" style="margin-top:8px"><div class="lab">Delta SIL/SAL To Date</div>
+      <div class="val">${eurK((tsil+tprod)-(tsal+tem))}</div></div>
+    <p class="muted" style="margin-top:8px">SIL del CoGe piu' la produzione registrata dopo${
+      td.mesi && td.mesi.length ? " ("+esc(td.mesi.join(", "))+") " : " "}&euro; ${eurK(tprod)};
+      SAL del CoGe piu' i SAL emessi non ancora contabilizzati &euro; ${eurK(tem)}.
+      I SAL emessi li scrivono DT e PM dalla web app BUSSOLA.</p>
+  </div>` : "";
+  const elenco = righe.map(r => {
+    const q = r.sil ? Math.max(0, Math.min(1, r.sal/r.sil)) : 0;
+    const dOggi = (r.sil+r.prod) - (r.sal+r.em);
+    return `<a class="item" href="#c/${(D.commesse||[]).findIndex(c=>c.c===r.n)}">
+      <b>${esc(r.n)}</b>
+      <div class="row2"><span>SIL <b>${eurK(r.sil)}</b> &middot; SAL <b>${eurK(r.sal)}</b></span>
+        <span>delta <b>${eurK(r.d)}</b></span></div>
+      <div class="hbar"><i style="width:${(100*q).toFixed(1)}%;background:var(--blue)"></i></div>
+      <div class="row3"><span>SAL al ${pct(q)} del SIL</span>
+        <span>${td?`To Date <b>${eurK(dOggi)}</b>`:"&nbsp;"}</span></div>
+      ${r.em?`<span class="p15">SAL emessi ${eurK(r.em)}${r.nota?" &middot; "+esc(r.nota):""}</span>`:""}
+    </a>`;
+  }).join("");
+  return `
+  <div class="card"><h2>SIL vs SAL</h2>
+    <div class="muted">Quanta produzione &egrave; gi&agrave; stata riconosciuta a SAL, al CoGe di
+      <b>${base}</b>. Valori progressivi; il delta &egrave; la produzione ancora da riconoscere.</div>
+    <div class="chips" style="margin-top:8px">${['',...dts].map(d =>
+      `<button class="chip ${d===filtroDT?'on':''}" data-v="${esc(d)}"
+        onclick="filtroPM='';setDT(this.dataset.v)">${esc(d)||'tutti i DT'}</button>`).join("")}</div>
+    ${kpi}
+  </div>
+  ${oggi}
+  <div class="card"><h3>Commesse, dal delta pi&ugrave; grande</h3>
+    <div class="clist" style="margin-top:6px">${elenco||'<div class="muted">Nessuna commessa con questo filtro.</div>'}</div>
+  </div>`;
+}
+function cardSilSal(nome){
+  const SL = SS(); if(!SL || !SL.commesse[nome]) return "";
+  const v = SL.commesse[nome];
+  const sil = v.sil[v.sil.length-1]||0, sal = v.sal[v.sal.length-1]||0;
+  if(!sil && !sal) return "";           // commessa non ancora nel CoGe: niente da mostrare
+  const prod = v.prod||0, em = v.em||0, td = SL.todate;
+  return `<div class="card"><h2>SIL vs SAL</h2>
+    <div class="grid2">
+      <div class="statmini"><div class="lab">SIL a ${mLab(SL.base)}</div><div class="val">${eurK(sil)}</div></div>
+      <div class="statmini"><div class="lab">SAL da CoGe</div><div class="val">${eurK(sal)}</div></div>
+    </div>
+    <div class="statmini" style="margin-top:8px"><div class="lab">Delta SIL/SAL</div>
+      <div class="val">${eurK(sil-sal)}</div></div>
+    ${td?`<div class="grid2" style="margin-top:8px">
+      <div class="statmini"><div class="lab">Delta To Date</div>
+        <div class="val">${eurK((sil+prod)-(sal+em))}</div></div>
+      <div class="statmini"><div class="lab">SAL emessi</div>
+        <div class="val">${em?eurK(em):"&mdash;"}</div></div>
+    </div>
+    <p class="muted" style="margin-top:8px">${prod?`Produzione registrata dopo il CoGe
+      &euro; ${eurK(prod)}. `:""}${em?`SAL emessi non ancora in CoGe &euro; ${eurK(em)}${
+      v.nota?": "+esc(v.nota):""}.`:"Nessun SAL emesso segnalato per questo mese."}</p>`:""}
+  </div>`;
+}
 /* ============================== router ============================== */
 async function cambiaPin(){
   const att = prompt("PIN attuale:"); if(att==null) return;
@@ -1156,6 +1329,7 @@ function render(){
   else if (h === "#dash"){ app.innerHTML = pgDash(); nav="dash"; back.style.display="none"; }
   else if (h === "#ce"){ app.innerHTML = pgCE(); nav="ce"; back.style.display="none"; }
   else if (h === "#commesse"){ app.innerHTML = pgCommesse(); nav="commesse"; back.style.display="none"; }
+  else if (h === "#silsal"){ app.innerHTML = pgSilSal(); nav="silsal"; back.style.display="none"; }
   else if (h === "#dati"){ app.innerHTML = pgDati(); nav="dati"; back.style.display="none"; }
   else if (h === "#info"){ app.innerHTML = pgInfo(); nav="home"; back.style.display=""; back.href="#home"; }
   else { app.innerHTML = pgHome(); back.style.display="none"; }
@@ -1179,10 +1353,12 @@ function risincronizza(){
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden) risincronizza(); });
 window.addEventListener("online",()=>risincronizza());
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js", {updateViaCache:"none"})
+  navigator.serviceWorker.register("sw.js?v=" + APP_VERSION, {updateViaCache:"none"})
     .then(reg => reg.update())
     .catch(()=>{});
 }
+const verEl = document.getElementById("ver");
+if(verEl) verEl.textContent = APP_VERSION;
 caricaAuto();
 setInterval(controllaVersione, 90000);
 </script>

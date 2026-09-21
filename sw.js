@@ -1,6 +1,10 @@
 /* BUSSOLA mobile - cache del solo guscio grafico. I dati riservati e lo stato
    di sincronizzazione non vengono mai memorizzati dal service worker. */
-const CACHE = "bussola-v10";
+/* Il nome della cache arriva dalla registrazione (sw.js?v=<versione della
+   app>): cosi' a ogni rilascio la cache vecchia viene buttata da sola, senza
+   doversi ricordare di alzare un numero qui dentro. */
+const V = new URL(self.location).searchParams.get("v") || "0";
+const CACHE = "bussola-v" + V;
 const SHELL = ["./", "index.html", "manifest.webmanifest", "logo.png",
                "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 
